@@ -6,6 +6,10 @@
 #include "sc2lib/sc2_lib.h"
 #include "sc2utils/sc2_arg_parser.h"
 #include "sc2utils/sc2_manage_process.h"
+#include <iostream>
+#include <sc2api/sc2_unit_filters.h>
+
+#include "GameState.h"
 
 using namespace sc2;
 

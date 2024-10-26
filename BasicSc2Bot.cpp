@@ -1,15 +1,16 @@
 #include "BasicSc2Bot.h"
-#include <sc2api/sc2_unit_filters.h>
-
-#include <iostream>
+#include "GameState.h"
 
 using namespace sc2;
 
+GameState state;
+
 void BasicSc2Bot::OnGameStart() { return; }
 
-void BasicSc2Bot::OnStep() { return; }
+void BasicSc2Bot::OnStep() { std::cout << "Hello, World!" << std::endl; }
 
 void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
+  state.idleUnits.push_back(unit);
   switch (unit->unit_type.ToType()) {
   case UNIT_TYPEID::ZERG_HATCHERY: {
     break;
@@ -32,6 +33,7 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_QUEEN: {
+    Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA);
     break;
   }
   case UNIT_TYPEID::ZERG_ZERGLING: {
