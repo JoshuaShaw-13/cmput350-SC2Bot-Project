@@ -30,6 +30,8 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_OVERLORD: {
+    // if less than 3 scouting, go scout
+    // if not go to back of base
     break;
   }
   case UNIT_TYPEID::ZERG_QUEEN: {
@@ -37,9 +39,11 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_ZERGLING: {
+    // rally
     break;
   }
   case UNIT_TYPEID::ZERG_ROACH: {
+    // rally
     break;
   }
   case UNIT_TYPEID::ZERG_LARVA: {
