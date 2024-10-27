@@ -1,5 +1,5 @@
-#ifndef GAME_STATE_
-#define GAME_STATE_
+#ifndef GAME_MANAGER_
+#define GAME_MANAGER_
 
 #include <sc2api/sc2_unit_filters.h>
 #include <vector>
@@ -8,12 +8,12 @@ using namespace sc2;
 // enum for current policy (saving?, building?, rushing?)
 enum Policy { BUILDING, ATTACKING, SAVING };
 
-class GameState {
+class GameManager {
 public:
-  GameState();
-  ~GameState();
-  GameState(const GameState &q);            // copy constructor
-  GameState &operator=(const GameState &q); // assignment operator
+  GameManager();
+  ~GameManager();
+  GameManager(const GameManager &q);            // copy constructor
+  GameManager &operator=(const GameManager &q); // assignment operator
 
   // arrays for idle units (group in some way)
   std::vector<const Unit *> idleUnits;

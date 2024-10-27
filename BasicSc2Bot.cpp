@@ -1,10 +1,10 @@
 #include "BasicSc2Bot.h"
-#include "GameState.h"
+#include "GameManager.h"
 #include <sc2api/sc2_interfaces.h>
 
 using namespace sc2;
 
-GameState state;
+GameManager state;
 
 void BasicSc2Bot::OnGameStart() { return; }
 
