@@ -31,8 +31,14 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_OVERLORD: {
-    // if less than 3 scouting, go scout
-    // if not go to back of base
+    if (state.scouts.size() < 1) {
+      Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
+                             state.scouting_location);
+      state.scouts.push_back(unit);
+    } else {
+      Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
+                             state.overlord_rally_point);
+    }
     break;
   }
   case UNIT_TYPEID::ZERG_QUEEN: {
@@ -40,11 +46,11 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_ZERGLING: {
-    // rally
+    Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
     break;
   }
   case UNIT_TYPEID::ZERG_ROACH: {
-    // rally
+    Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
     break;
   }
   case UNIT_TYPEID::ZERG_LARVA: {

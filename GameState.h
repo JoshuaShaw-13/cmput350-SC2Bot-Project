@@ -21,7 +21,17 @@ public:
   // array of attackable enemy bases (logs unit that represents a base, like a
   // command center)
   std::vector<const Unit *> enemyBaseLocations;
+
+  // array of scouts
+  std::vector<const Unit *> scouts;
+
+  // current policy from Policy enum
   int curr_policy;
+
+  // location points
+  Point2D rally_point;
+  Point2D overlord_rally_point;
+  Point2D scouting_location;
 };
 
 #endif
