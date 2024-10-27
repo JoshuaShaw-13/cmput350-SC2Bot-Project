@@ -1,6 +1,8 @@
 /**
  * Specialized queue encapsulation for tracking attack order of targets (within a base)
  */
+#ifndef ATTACKTARGETQUEUE_H
+#define ATTACKTARGETQUEUE_H
 
 #include <queue>
 #include "AttackBaseQueue.h"
@@ -30,3 +32,5 @@ class AttackTargetQueue{
 };
 
 struct Target{};
+
+#endif
