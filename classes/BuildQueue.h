@@ -1,6 +1,8 @@
 /**
  * Specialized Queue encapsulation for tracking the build order
  */
+#ifndef BUILDQUEUE_H
+#define BUILDQUEUE_H
 
 #include <queue>
 #include "sc2api/sc2_api.h"
@@ -46,3 +48,5 @@ struct Unit{
     BuildOrderItem(int s, sc2::ABILITY_ID a)
         : supply(s), unit_type(sc2::UNIT_TYPEID::INVALID), ability(a), is_unit(false) {}
     };
+
+#endif
