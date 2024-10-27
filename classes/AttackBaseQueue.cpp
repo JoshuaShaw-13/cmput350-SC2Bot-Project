@@ -54,7 +54,7 @@ struct Base{
         */
 
     }
-    sc2::Point2D distanceFromAgent();
+    int distanceFromAgent();
     //data
     sc2::Point2D loc; //Base's (x,y) coord location
     };
