@@ -13,15 +13,6 @@ void BasicSc2Bot::OnStep() { std::cout << "Hello, World!" << std::endl; }
 void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   state.idleUnits.push_back(unit);
   switch (unit->unit_type.ToType()) {
-  case UNIT_TYPEID::ZERG_HATCHERY: {
-    break;
-  }
-  case UNIT_TYPEID::ZERG_LAIR: {
-    break;
-  }
-  case UNIT_TYPEID::ZERG_ROACHWARREN: {
-    break;
-  }
   case UNIT_TYPEID::ZERG_DRONE: {
     const Unit *mineral_target = FindNearestMineralPatch(unit->pos);
     if (!mineral_target) {
@@ -51,9 +42,6 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   }
   case UNIT_TYPEID::ZERG_ROACH: {
     Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
-    break;
-  }
-  case UNIT_TYPEID::ZERG_LARVA: {
     break;
   }
   default: {
