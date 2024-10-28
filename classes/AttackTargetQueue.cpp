@@ -1,3 +1,6 @@
+/**
+ * Specialized queue encapsulation for tracking attack order of targets (within a base)
+ */
 #include <queue>
 #include <cassert>
 #include "AttackBaseQueue.h"
