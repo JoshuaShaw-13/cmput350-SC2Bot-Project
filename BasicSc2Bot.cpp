@@ -51,22 +51,23 @@ void BasicSc2Bot::OnStep() {
     // Change it to build at cap for example build drones till 13
 
     // build next structure/unit
-    if(!buildQueue.empty()){
-        auto& buildItem = buildQueue.peek();
+    if(!build_order.empty()){
+        auto& buildItem = build_order.peek();
         int count;
         if(current_supply >= buildItem.supply){
             if(tryBuild(buildItem)){
-                buildQueue.pop();
+                build_order.pop();
+            }
+        }
+        else{
+            const Unit* larva = nullptr;
+            larva = findIdleLarva();
+            if(larva){
+                Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_DRONE);
             }
         }
     }
-    else{
-        const Unit* larva = nullptr;
-        larva = findIdleLarva();
-        if(larva){
-            Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_DRONE);
-        }
-    }
+   
 
     
     // build overseers when we are nearing troop capacity
