@@ -1,7 +1,7 @@
 /**
  * Specialized Queue encapsulation for tracking the build order
  */
-
+#include "BuildQueue.h"
 #include <queue>
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_args.h"
