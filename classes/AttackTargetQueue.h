@@ -31,6 +31,17 @@ class AttackTargetQueue{
 
 };
 
-struct Target{};
+struct Target{
+    Target(int p, sc2::Point2D loc):priority(p), loc(loc){ assert(p>0);};
 
+    bool operator>(Target &t){
+        /** comparison override: compare in terms of priority, closer to 1 priority = higher priority */
+        return priority < t;
+    }
+
+    int distanceFromAgent();
+    //data
+    int priority; //int representation of attack priority: TODO: evaluate priority from location and strength
+    sc2::Point2D loc; //Targets's (x,y) coord location
+};
 #endif
