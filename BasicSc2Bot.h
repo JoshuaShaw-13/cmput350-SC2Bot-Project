@@ -15,6 +15,11 @@ public:
 
 private:
   const Unit *FindNearestMineralPatch(const Point2D &start);
+  const Unit *findIdleLarva();
+  const Unit *findIdleDrone();
+  bool tryBuild(struct BuildOrderItem);
+  bool isArmyReady();
+  void launchAttack( const Point2D& target);
 };
 
 #endif
