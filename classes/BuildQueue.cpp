@@ -1,7 +1,6 @@
 /**
  * Specialized Queue encapsulation for tracking the build order
  */
-#include "BuildQueue.h"
 #include <queue>
 #include "BuildQueue.h"
 #include "sc2api/sc2_api.h"
@@ -10,38 +9,37 @@
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
 
-using namespace BuildQueue;
-
-BuildQueue(const BuildQueue &q){
+BuildQueue::BuildQueue(const BuildQueue &q){
     /** copy constructor */
-    this->data = q.data;
+    data = q.data;
 };
-BuildQueue &operator=(const BuildQueue &q){
+
+BuildQueue& BuildQueue::operator=(const BuildQueue &q){
     /** assignment operator */
-    this->data = q->data;
+    this->data = q.data;
     return *this;
 };
 
 //getter(s)
-std::queue<BuildOrderItem*>* getQueue() const{
-    return this->data;
+std::queue<BuildOrderItem> BuildQueue::getQueue() const{
+    return data;
 }
 
 //methods
-bool isEmpty() const{
+bool BuildQueue::isEmpty() const{
     /** returns true if the queue is empty */
-    return data->empty();
+    return data.empty();
 }
-BuildOrderItem* peek() const{
+BuildOrderItem BuildQueue::peek() const{
     /** returns a pointer to the next building in the queue */
-    return data->front();}
-BuildOrderItem* pop() {
+    return data.front();}
+BuildOrderItem BuildQueue::pop() {
     /** removes the next building in the queue, and returns a pointer to that building */
-    BuildOrderItem* popped = data->front();
-    data->pop();
+    BuildOrderItem popped = data.front();
+    data.pop();
     return popped;
     };
-void push(const BuildOrderItem &BuildOrderItem){
+void BuildQueue::push(const BuildOrderItem &buildOrderItem){
     /**  adds the given BuildOrderItem to the queue*/
-    data->push(BuildOrderItem);
+    data.push(buildOrderItem);
     }
