@@ -5,7 +5,7 @@ void BasicSc2Bot::OnGameStart() {
     scout_locations = observation->GetGameInfo().enemy_start_locations;
 
     // Build drones if not at the given army cap for next item 
-        build_order.push((13, UNIT_TYPEID::ZERG_OVERLORD));      // At 13 cap, build an Overlord
+        build_order.push(BuildOrderItem(13, UNIT_TYPEID::ZERG_OVERLORD));      // At 13 cap, build an Overlord
         build_order.push(BuildOrderItem(16, UNIT_TYPEID::ZERG_HATCHERY));      // At 16 cap, build a Hatchery
         build_order.push(BuildOrderItem(18, UNIT_TYPEID::ZERG_EXTRACTOR));     // At 18 cap, build an Extractor
         build_order.push(BuildOrderItem(17, UNIT_TYPEID::ZERG_SPAWNINGPOOL));  // At 17 cap, build a Spawning Pool
