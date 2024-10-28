@@ -7,6 +7,8 @@
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
 #include <vector>
+#include "Classes/AttackBaseQueue.h"
+#include "Classes/BuildQueue.h"
 
 class BasicSc2Bot : public sc2::Agent {
 public:
@@ -29,10 +31,9 @@ private:
         BuildOrderItem(int s, sc2::ABILITY_ID a)
             : supply(s), unit_type(sc2::UNIT_TYPEID::INVALID), ability(a), is_unit(false) {}
     };
-	size_t build_order_index; // What item in the build_order we're currently on
-    std::vector<BuildOrderItem> build_order; // Vector that holds BuildOrderItems
+    BuildQueue build_order; // Queue that holds BuildOrderItems
     std::vector<sc2::Point3D> scout_locations; // Vector containing locations we need to scout
-    std::vector<sc2::Point3D> enemy_bases; // Vector containing locations we identify as enemy bases
+    AttackBaseQueue enemy_bases; // Queue containing locations we identify as enemy bases
 
 };
 
