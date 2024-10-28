@@ -33,8 +33,4 @@ void BasicSc2Bot::OnGameStart() {
         scout_locations.erase(scout_locations.begin());
     } }
 
-void BasicSc2Bot::OnStep() { 
-
-    
-    
-}
+void BasicSc2Bot::OnStep() { std::cout << "Hello, World!" << std::endl; }

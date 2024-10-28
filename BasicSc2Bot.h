@@ -9,6 +9,8 @@
 #include <vector>
 #include "Classes/AttackBaseQueue.h"
 #include "Classes/BuildQueue.h"
+#include <sc2api/sc2_agent.h>
+#include <sc2api/sc2_unit_filters.h>
 
 class BasicSc2Bot : public sc2::Agent {
 public:
@@ -35,6 +37,7 @@ private:
     std::vector<sc2::Point3D> scout_locations; // Vector containing locations we need to scout
     AttackBaseQueue enemy_bases; // Queue containing locations we identify as enemy bases
 
+     const Unit *FindNearestMineralPatch(const Point2D &start);
 };
 
 #endif
