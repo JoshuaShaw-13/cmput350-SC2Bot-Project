@@ -354,3 +354,6 @@ MigrationBackup/
 .ionide/
 
 build/
+
+# compile commands
+compile_commands.json
