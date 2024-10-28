@@ -21,7 +21,7 @@ AttackTargetQueue &operator=(const AttackTargetQueue &q){
 
 //getter(s)
 std::priority_queue<Target*>* getQueue(){ return this->data;}
-Base* getBase(){ return this->base;}
+EnemyBase* getBase(){ return this->base;}
 
 //methods
 bool isEmpty(){
@@ -38,9 +38,9 @@ Target* pop(){
     data.pop();
     return popped;
 }
-void push(const Target &t){
+void push(const Target &target){
     /** adds a new target to the queue */
-    data->push(t);
+    data->push(target);
 }
 
 
