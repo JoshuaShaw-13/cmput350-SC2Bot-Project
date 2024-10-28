@@ -41,7 +41,7 @@ void BasicSc2Bot::OnGameStart() {
     Units overlords = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
     if (!overlords.empty() && !scout_locations.empty()) {
         const Unit* first_overlord = overlords.front();
-        Actions()->UnitCommand(first_overlord, ABILITY_ID::MOVE, scout_locations.front());
+        Actions()->UnitCommand(first_overlord, ABILITY_ID::MOVE_MOVE, scout_locations.front());
         scout_locations.erase(scout_locations.begin());
     } }
 
@@ -51,8 +51,8 @@ void BasicSc2Bot::OnStep() {
     // Change it to build at cap for example build drones till 13
 
     // build next structure/unit
-    if(!build_order.empty()){
-        auto& buildItem = build_order.peek();
+    if(!build_order.isEmpty()){
+        auto buildItem = build_order.peek();
         int count;
         if(current_supply >= buildItem.supply){
             if(tryBuild(buildItem)){
@@ -80,8 +80,8 @@ void BasicSc2Bot::OnStep() {
     // Attack once we have an optimal army build
     // use the attack base queue
     if(isArmyReady()){
-        if(!enemy_bases.empty()){
-            launchAttack(enemy_bases[0]);
+        if(!enemy_bases.isEmpty()){
+            launchAttack(enemy_bases.peek()->loc);
         }
     }
 
@@ -150,6 +150,7 @@ const Unit* BasicSc2Bot::findIdleLarva(){
             return unit;
         }
     }
+    return nullptr;
 }
 const Unit* BasicSc2Bot::findIdleDrone(){
     for(const auto& unit: Observation()->GetUnits(Unit::Alliance::Self)){
@@ -157,6 +158,7 @@ const Unit* BasicSc2Bot::findIdleDrone(){
             return unit;
         }
     }
+    return nullptr;
 }
 // Eventually will use manager
 // For now it checks whether its a unit, strucure, or upgrade
