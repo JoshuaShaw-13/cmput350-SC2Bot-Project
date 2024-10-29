@@ -23,26 +23,15 @@ public:
   virtual void OnUnitIdle(const Unit *unit) final;
 
 private:
-	// Temporary struct to hold build order
-    struct BuildOrderItem {
-        int supply;                   // Supply count at which to build the gien unit/ability (0 if ASAP)
-        sc2::UNIT_TYPEID unit_type;   // Unit or structure to build
-        sc2::ABILITY_ID ability;      // Ability to use (for upgrades or morphs)
-        bool is_unit;                 // True if unit_type is valid, false if ability is valid
-
-        // Constructor for units and structures
-        BuildOrderItem(int s, sc2::UNIT_TYPEID u)
-            : supply(s), unit_type(u), ability(sc2::ABILITY_ID::INVALID), is_unit(true) {}
-
-        // Constructor for abilities
-        BuildOrderItem(int s, sc2::ABILITY_ID a)
-            : supply(s), unit_type(sc2::UNIT_TYPEID::INVALID), ability(a), is_unit(false) {}
-    };
-    BuildQueue build_order; // Queue that holds BuildOrderItems
-    std::vector<sc2::Point2D> scout_locations; // Vector containing locations we need to scout
-    AttackBaseQueue enemy_bases; // Queue containing locations we identify as enemy bases
-
-     const Unit *FindNearestMineralPatch(const Point2D &start);
+  const Unit *FindNearestMineralPatch(const Point2D &start);
+  const Unit *findIdleLarva();
+  const Unit *findIdleDrone();
+  bool tryBuild(struct BuildOrderItem);
+  bool isArmyReady();
+  void launchAttack( const Point2D& target);
+  BuildQueue build_order; // Queue that holds BuildOrderItems
+  std::vector<Point2D> scout_locations; // Vector containing locations we need to scout
+  AttackBaseQueue enemy_bases; // Queue containing locations we identify as enemy bases
 };
 
 #endif
