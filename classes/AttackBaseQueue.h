@@ -22,19 +22,19 @@ struct EnemyBase{
 
 class AttackBaseQueue{
     public:
-    AttackBaseQueue(){}; //contructor
-    ~AttackBaseQueue(){}; //destructor
-    AttackBaseQueue(const AttackBaseQueue &q){}; //copy constructor
-    AttackBaseQueue &operator=(const AttackBaseQueue &q){}; //assignment operator
+    AttackBaseQueue(); //contructor
+    ~AttackBaseQueue(); //destructor
+    AttackBaseQueue(const AttackBaseQueue &q); //copy constructor
+    AttackBaseQueue &operator=(const AttackBaseQueue &q); //assignment operator
 
     //getter(s)
-    std::priority_queue<EnemyBase*>* getQueue(){};
+    std::priority_queue<EnemyBase*>* getQueue();
 
     //methods
-    bool isEmpty(){/** returns true if queue is empty */};
-    EnemyBase* peek()const{/** returns a pointer reference to the next Base in the queue */}
-    EnemyBase* pop(){/** removes the next Base in the queue, and returns a pointer reference to this Base */}
-    void push(const EnemyBase &base){/** adds a new base to the queue */}
+    bool isEmpty();/** returns true if queue is empty */;
+    EnemyBase* peek() const;/** returns a pointer reference to the next Base in the queue */
+    EnemyBase* pop();/** removes the next Base in the queue, and returns a pointer reference to this Base */
+    void push(const EnemyBase &base);/** adds a new base to the queue */
 
     private:
     //data
