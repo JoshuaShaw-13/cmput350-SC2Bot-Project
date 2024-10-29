@@ -355,5 +355,9 @@ MigrationBackup/
 
 build/
 
+<<<<<<< HEAD
+.vscode/
+=======
 # compile commands
 compile_commands.json
+>>>>>>> 1f406da1e7105bf22087e9afd56d552c3e189d6f
