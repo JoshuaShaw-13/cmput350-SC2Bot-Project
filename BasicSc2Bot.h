@@ -39,7 +39,7 @@ private:
             : supply(s), unit_type(sc2::UNIT_TYPEID::INVALID), ability(a), is_unit(false) {}
     };
     BuildQueue build_order; // Queue that holds BuildOrderItems
-    std::vector<sc2::Point3D> scout_locations; // Vector containing locations we need to scout
+    std::vector<sc2::Point2D> scout_locations; // Vector containing locations we need to scout
     AttackBaseQueue enemy_bases; // Queue containing locations we identify as enemy bases
 
      const Unit *FindNearestMineralPatch(const Point2D &start);

@@ -1,6 +1,7 @@
 #include "BasicSc2Bot.h"
 #include "GameManager.h"
 #include <sc2api/sc2_interfaces.h>
+#include <sc2api/sc2_typeenums.h>
 
 using namespace sc2;
 
@@ -35,7 +36,7 @@ void BasicSc2Bot::OnGameStart() {
     Units overlords = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
     if (!overlords.empty() && !scout_locations.empty()) {
         const Unit* first_overlord = overlords.front();
-        Actions()->UnitCommand(first_overlord, ABILITY_ID::MOVE, scout_locations.front());
+        Actions()->UnitCommand(first_overlord, ABILITY_ID::SMART, scout_locations.front());
         scout_locations.erase(scout_locations.begin());
     } }
 
