@@ -100,8 +100,8 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   }
   case UNIT_TYPEID::ZERG_OVERLORD: {
     if (state.scouts.size() < 1) {
-      Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
-                             state.scouting_location);
+      Actions()->UnitCommand(unit, ABILITY_ID::SMART, scout_locations.front());
+      scout_locations.erase(scout_locations.begin());
       state.scouts.push_back(unit);
     } else {
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
@@ -160,22 +160,6 @@ const Unit *BasicSc2Bot::FindNearestVespenePatch(const Point2D &start){
     return target;
 }
 
-const Unit* BasicSc2Bot::findIdleLarva(){
-    for(const auto& unit: Observation()->GetUnits(Unit::Alliance::Self)){
-        if(unit->unit_type == UNIT_TYPEID::ZERG_LARVA && unit->orders.empty()){
-            return unit;
-        }
-    }
-    return nullptr;
-}
-const Unit* BasicSc2Bot::findIdleDrone(){
-    for(const auto& unit: Observation()->GetUnits(Unit::Alliance::Self)){
-        if(unit->unit_type == UNIT_TYPEID::ZERG_DRONE && unit->orders.empty()){
-            return unit;
-        }
-    }
-    return nullptr;
-}
 const Unit* BasicSc2Bot::findAvailableDrone() {
     Units drones = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_DRONE));
 
@@ -211,6 +195,51 @@ const Unit* BasicSc2Bot::findAvailableDrone() {
     // No available Drones found
     return nullptr;
 }
+
+Point2D BasicSc2Bot::findBuildPositionNear(const Point2D& target_position) {
+    const float hatchery_size = 5.0f; // Hatchery size in grid squares
+    const float build_radius = hatchery_size / 2.0f; // Half the size for radius
+    const float search_radius = build_radius + 5.0f; // Add extra space for clearance
+    const float angle_step = 10.0f; // Angle increment in degrees
+
+    const ObservationInterface* observation = Observation();
+
+    for (float radius = search_radius; radius <= search_radius + 5.0f; radius += 1.0f) {
+        for (float angle = 0.0f; angle < 360.0f; angle += angle_step) {
+            float radians = angle * 3.14159f / 180.0f;
+            Point2D build_position = Point2D(
+                target_position.x + radius * cos(radians),
+                target_position.y + radius * sin(radians)
+            );
+
+            // Check if the position is valid for building a Hatchery
+            if (Query()->Placement(ABILITY_ID::BUILD_HATCHERY, build_position)) {
+                return build_position;
+            }
+        }
+    }
+
+    // No valid position found
+    return Point2D(0.0f, 0.0f);
+}
+
+const Unit* BasicSc2Bot::findIdleLarva(){
+    for(const auto& unit: Observation()->GetUnits(Unit::Alliance::Self)){
+        if(unit->unit_type == UNIT_TYPEID::ZERG_LARVA && unit->orders.empty()){
+            return unit;
+        }
+    }
+    return nullptr;
+}
+const Unit* BasicSc2Bot::findIdleDrone(){
+    for(const auto& unit: Observation()->GetUnits(Unit::Alliance::Self)){
+        if(unit->unit_type == UNIT_TYPEID::ZERG_DRONE && unit->orders.empty()){
+            return unit;
+        }
+    }
+    return nullptr;
+}
+
 // Eventually will use manager
 // For now it checks whether its a unit, strucure, or upgrade
 bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem){
@@ -259,16 +288,17 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem){
                     }
                 }
                 break;
+
             // if its a hatchery we get the nearest mineral location that we havent visited
             case UNIT_TYPEID::ZERG_HATCHERY:{
                 const Unit* drone = findAvailableDrone();
-                if(drone){
+                if(drone && observation->GetMinerals() >= 300){
                     float rx = GetRandomScalar();
                     float ry = GetRandomScalar();
                     const Unit * nearest_new_mineral_loc = FindNearestMineralPatch(drone->pos);
-                    Point2D build_position = Point2D(nearest_new_mineral_loc->pos.x + rx * 15.0f, nearest_new_mineral_loc->pos.y + ry * 15.0f);
-
-                    Actions()->UnitCommand(drone, buildItem.ability, build_position);
+                    Point2D build_position = findBuildPositionNear(nearest_new_mineral_loc->pos);
+                    if (build_position.x != 0.0f || build_position.y != 0.0f) {
+                    Actions()->UnitCommand(drone, buildItem.ability, build_position);}
                     return true;
                 }
                 break;}
@@ -283,14 +313,13 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem){
                     Actions()->UnitCommand(drone, buildItem.ability, build_position);
                     return true;
                 }
-                break;}
-            
+                break;}        
             default:
                 const Unit* drone = findAvailableDrone();
                 if(drone){
                     float rx = GetRandomScalar();
                     float ry = GetRandomScalar();
-                    Point2D build_position = Point2D(drone->pos.x + rx * 15.0f, drone->pos.y + ry * 15.0f);
+                    Point2D build_position = Point2D(drone->pos.x - 50, drone->pos.y - 100);
 
                     Actions()->UnitCommand(drone, buildItem.ability, build_position);
                     return true;}
