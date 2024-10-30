@@ -4,6 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # User-specific files
+compile_commands.json
 *.rsuser
 *.suo
 *.user
@@ -353,3 +354,10 @@ MigrationBackup/
 .ionide/
 
 build/
+
+<<<<<<< HEAD
+.vscode/
+=======
+# compile commands
+compile_commands.json
+>>>>>>> 1f406da1e7105bf22087e9afd56d552c3e189d6f
