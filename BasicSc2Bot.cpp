@@ -1,6 +1,5 @@
 #include "BasicSc2Bot.h"
 #include "GameManager.h"
-#include "classes/BuildQueue.h"
 #include <sc2api/sc2_interfaces.h>
 #include <sc2api/sc2_typeenums.h>
 #include <sc2api/sc2_unit.h>

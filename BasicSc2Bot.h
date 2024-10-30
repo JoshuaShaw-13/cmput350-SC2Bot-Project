@@ -8,8 +8,8 @@
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
 #include <vector>
-#include "Classes/AttackBaseQueue.h"
-#include "Classes/BuildQueue.h"
+#include "AttackBaseQueue.h"
+#include "BuildQueue.h"
 #include <sc2api/sc2_agent.h>
 #include <sc2api/sc2_unit_filters.h>
 

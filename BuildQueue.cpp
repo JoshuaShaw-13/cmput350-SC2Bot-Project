@@ -1,14 +1,14 @@
 /**
  * Specialized Queue encapsulation for tracking the build order
  */
-#include <queue>
 #include "BuildQueue.h"
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_args.h"
 #include "sc2lib/sc2_lib.h"
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
-
+BuildQueue::BuildQueue(){}
+BuildQueue::~BuildQueue(){}
 BuildQueue::BuildQueue(const BuildQueue &q){
     /** copy constructor */
     data = q.data;

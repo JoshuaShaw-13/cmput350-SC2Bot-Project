@@ -2,8 +2,6 @@
  * Specialized queue encapsulation for tracking which enemy base to attack
  */
 #include "AttackBaseQueue.h"
-#include <queue>
-#include <sc2_common.h>
 
 
 AttackBaseQueue::AttackBaseQueue(const AttackBaseQueue &q){
