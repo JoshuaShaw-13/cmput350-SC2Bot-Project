@@ -100,8 +100,8 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   }
   case UNIT_TYPEID::ZERG_OVERLORD: {
     if (state.scouts.size() < 1) {
-      Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
-                             state.scouting_location);
+      Actions()->UnitCommand(unit, ABILITY_ID::SMART, scout_locations.front());
+      scout_locations.erase(scout_locations.begin());
       state.scouts.push_back(unit);
     } else {
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
