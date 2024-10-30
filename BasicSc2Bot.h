@@ -24,19 +24,22 @@ public:
   virtual void OnUnitIdle(const Unit *unit) final;
 
 private:
-  const Unit *FindNearestMineralPatch(const Point2D &start);
-  const Unit *FindNearestVespenePatch(const Point2D &start);
+  const Unit *FindNearestMineralPatch(const Point2D&);
+  const Unit *FindNearestVespenePatch(const Point2D&);
   const Unit *findIdleLarva();
   const Unit *findIdleDrone();
   const Unit* findAvailableDrone();
-  Point2D findBuildPositionNear(const Point2D& target_position);
+  const Unit *findAvailableLarva();
+  Point2D findBuildPositionNearMineral(const Point2D&);
+  Point2D findBuildPosition(const Point2D&);
   bool tryBuild(struct BuildOrderItem);
   bool isArmyReady();
-  void launchAttack( const Point2D& target);
+  void launchAttack( const Point2D&);
   BuildQueue build_order; // Queue that holds BuildOrderItems
   std::vector<Point2D> scout_locations; // Vector containing locations we need to scout
   std::set<const Unit*> mineral_locations;
   std::set<const Unit*> vespene_locations;
+  bool launching_attack = false;
   AttackBaseQueue enemy_bases; // Queue containing locations we identify as enemy bases
 };
 
