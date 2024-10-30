@@ -143,6 +143,69 @@ const Unit *BasicSc2Bot::FindNearestMineralPatch(const Point2D &start) {
   return target;
 }
 
+const Unit* BasicSc2Bot::findAvailableDrone() {
+    Units drones = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_DRONE));
+
+    // Prioritize idle Drones
+    for (const auto& drone : drones) {
+        if (drone->orders.empty()) {
+            return drone;
+        }
+    }
+
+    // If no idle Drones, find one that's harvesting minerals
+    for (const auto& drone : drones) {
+        if (!drone->orders.empty()) {
+            AbilityID current_ability = drone->orders.front().ability_id;
+            if (current_ability == ABILITY_ID::HARVEST_GATHER || current_ability == ABILITY_ID::HARVEST_RETURN) {
+                return drone;
+            }
+        }
+    }
+
+    // As a last resort, find any Drone not building something
+    for (const auto& drone : drones) {
+        if (!drone->orders.empty()) {
+            AbilityID current_ability = drone->orders.front().ability_id;
+            if (current_ability != ABILITY_ID::BUILD_HATCHERY &&
+                current_ability != ABILITY_ID::BUILD_EXTRACTOR &&
+                current_ability != ABILITY_ID::BUILD_SPAWNINGPOOL) {
+                return drone;
+            }
+        }
+    }
+
+    // No available Drones found
+    return nullptr;
+}
+
+Point2D BasicSc2Bot::findBuildPositionNear(const Point2D& target_position) {
+    const float hatchery_size = 5.0f; // Hatchery size in grid squares
+    const float build_radius = hatchery_size / 2.0f; // Half the size for radius
+    const float search_radius = build_radius + 5.0f; // Add extra space for clearance
+    const float angle_step = 10.0f; // Angle increment in degrees
+
+    const ObservationInterface* observation = Observation();
+
+    for (float radius = search_radius; radius <= search_radius + 5.0f; radius += 1.0f) {
+        for (float angle = 0.0f; angle < 360.0f; angle += angle_step) {
+            float radians = angle * 3.14159f / 180.0f;
+            Point2D build_position = Point2D(
+                target_position.x + radius * cos(radians),
+                target_position.y + radius * sin(radians)
+            );
+
+            // Check if the position is valid for building a Hatchery
+            if (Query()->Placement(ABILITY_ID::BUILD_HATCHERY, build_position)) {
+                return build_position;
+            }
+        }
+    }
+
+    // No valid position found
+    return Point2D(0.0f, 0.0f);
+}
+
 const Unit* BasicSc2Bot::findIdleLarva(){
     for(const auto& unit: Observation()->GetUnits(Unit::Alliance::Self)){
         if(unit->unit_type == UNIT_TYPEID::ZERG_LARVA && unit->orders.empty()){
@@ -207,13 +270,29 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem){
                     }
                 }
                 break;
+            case UNIT_TYPEID::ZERG_HATCHERY: {
+                const Unit* drone = findAvailableDrone();
+                if (drone && observation->GetMinerals() >= 300) {
+                    const Unit* second_nearest_mineral_patch = FindSecondNearestMineralPatch(drone->pos);
+                    if (second_nearest_mineral_patch) {
+                        Point2D mineral_position = second_nearest_mineral_patch->pos;
+                        Point2D build_position = findBuildPositionNear(mineral_position);
+
+                        if (build_position.x != 0.0f || build_position.y != 0.0f) {
+                            Actions()->UnitCommand(drone, ABILITY_ID::BUILD_HATCHERY, build_position);
+                            return true;
+                        }
+                    }
+                }
+    break;
+}
             
             default:
                 const Unit* drone = findIdleDrone();
                 if(drone){
                     float rx = GetRandomScalar();
                     float ry = GetRandomScalar();
-                    Point2D build_position = Point2D(drone->pos.x + rx * 15.0f, drone->pos.y + ry * 15.0f);
+                    Point2D build_position = Point2D(drone->pos.x - 50, drone->pos.y - 100);
 
                     Actions()->UnitCommand(drone, buildItem.ability, build_position);
                     return true;

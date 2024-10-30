@@ -26,6 +26,8 @@ private:
   const Unit *FindNearestMineralPatch(const Point2D &start);
   const Unit *findIdleLarva();
   const Unit *findIdleDrone();
+  const Unit *findAvailableDrone();
+  Point2D findBuildPositionNear(const Point2D& target_position);
   bool tryBuild(struct BuildOrderItem);
   bool isArmyReady();
   void launchAttack( const Point2D& target);
