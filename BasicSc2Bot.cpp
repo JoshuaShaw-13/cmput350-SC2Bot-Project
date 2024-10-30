@@ -175,7 +175,14 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem){
                     return true;
                 }
                 break;
-            
+
+            case UNIT_TYPEID::ZERG_OVERLORD:
+                larva = findIdleLarva();
+                if(larva && observation->GetMinerals() >= 100){
+                    Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_OVERLORD);
+                    return true;
+                }
+                break;
             case UNIT_TYPEID::ZERG_ROACH:
                 larva = findIdleLarva();
                 if(larva && observation->GetMinerals() >= 75 && observation->GetVespene() >= 25){
