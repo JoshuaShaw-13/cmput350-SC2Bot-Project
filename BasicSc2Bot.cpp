@@ -24,7 +24,7 @@ void BasicSc2Bot::OnGameStart() {
     build_order.push(BuildOrderItem(
         18, UNIT_TYPEID::ZERG_EXTRACTOR)); // At 18 cap, build an Extractor
     build_order.push(BuildOrderItem(
-        19,
+        17,
         UNIT_TYPEID::ZERG_SPAWNINGPOOL)); // At 17 cap, build a Spawning Pool
     build_order.push(BuildOrderItem(
         20, UNIT_TYPEID::ZERG_OVERLORD)); // At 20 cap, build an Overlord
@@ -144,9 +144,28 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
         break;
     }
     case UNIT_TYPEID::ZERG_QUEEN: {
-        Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA);
+        Units hatcheries = Observation()->GetUnits(Unit::Alliance::Self, IsTownHall());
+        if (!hatcheries.empty()) {
+            // Find the closest Hatchery to the Queen
+            const Unit* closest_hatchery = nullptr;
+            float min_distance = std::numeric_limits<float>::max();
+            for (const auto& hatchery : hatcheries) {
+                if (hatchery->build_progress == 1.0f) {
+                    float distance = DistanceSquared2D(unit->pos, hatchery->pos);
+                    if (distance < min_distance) {
+                        min_distance = distance;
+                        closest_hatchery = hatchery;
+                        min_distance = distance;
+                    }
+                }
+            }
+            if (closest_hatchery) {
+                Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA, closest_hatchery);
+            }
+        }
         break;
-    }
+  }
+
     case UNIT_TYPEID::ZERG_ZERGLING: {
         Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
         break;
@@ -340,6 +359,26 @@ const Unit *BasicSc2Bot::findIdleDrone() {
 // For now it checks whether its a unit, strucure, or upgrade
 bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     const ObservationInterface *observation = Observation();
+     // Check if the item is a MORPH_LAIR upgrade to handle separately.
+    if (buildItem.ability == ABILITY_ID::MORPH_LAIR) {
+        Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
+        for (const auto& hatchery : hatcheries) {
+            // Ensure the Hatchery is completed and idle
+            if (hatchery->build_progress == 1.0f && hatchery->orders.empty()) {
+                // Check for resources
+                if (observation->GetMinerals() >= 150 && observation->GetVespene() >= 100) {
+                    Actions()->UnitCommand(hatchery, ABILITY_ID::MORPH_LAIR);
+                    std::cout << "Upgrading Hatchery to Lair." << std::endl;
+                    return true;
+                } else {
+                    std::cout << "Insufficient resources to morph Lair." << std::endl;
+                }
+            }
+        }
+        std::cout << "No available Hatchery for Lair upgrade." << std::endl;
+        return false;
+    }
+
     // if its a unit build it if we can afford
     if (buildItem.is_unit) {
         // check whether its a unit or a structure
@@ -459,6 +498,28 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             }
             break;
         }
+        case UNIT_TYPEID::ZERG_ROACHWARREN: {
+        const Unit* drone = findAvailableDrone();
+        if (drone && observation->GetMinerals() >= 150) {
+            AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
+            Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
+            if (build_position != Point2D(0.0f, 0.0f)) {
+                Actions()->UnitCommand(drone, build_ability, build_position);
+                std::cout << "Building Roach Warren"  << std::endl;
+                return true;
+            } else {
+                std::cout << "No valid position found for Roach Warren." << std::endl;
+            }
+        } else {
+            if (!drone) {
+                std::cout << "No available Drone to build Roach Warren." << std::endl;
+            }
+            if (observation->GetMinerals() < 150) {
+                std::cout << "Not enough minerals to build Roach Warren." << std::endl;
+            }
+        }
+        break;
+        }
 
         default:
             const Unit *drone = findAvailableDrone();
@@ -509,4 +570,20 @@ void BasicSc2Bot::launchAttack(const Point2D &target) {
             launching_attack = true;
         }
     }
+}
+
+Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability, const Point2D& near_point) {
+    // Try random points around the near_point
+    for (int i = 0; i < 20; ++i) { // Increased iterations for better chances
+        float rx = GetRandomScalar() * 10.0f - 5.0f; // Center around near_point
+        float ry = GetRandomScalar() * 10.0f - 5.0f;
+        Point2D test_point = near_point + Point2D(rx, ry);
+
+        // Check if the position is valid for building
+        if (Query()->Placement(ability, test_point)) {
+            return test_point;
+        }
+    }
+    // No valid position found
+    return Point2D(0.0f, 0.0f); // Indicates failure
 }
