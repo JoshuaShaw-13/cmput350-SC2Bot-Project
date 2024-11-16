@@ -26,6 +26,7 @@ public:
 private:
   const Unit *FindNearestMineralPatch(const Point2D&);
   const Unit *FindNearestVespenePatch(const Point2D&);
+  Point2D FindPlacementLocation(AbilityID ability, const Point2D& near_point);
   const Unit *findIdleLarva();
   const Unit *findIdleDrone();
   const Unit* findAvailableDrone();
