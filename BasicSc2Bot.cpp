@@ -436,10 +436,9 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         const Unit *mineral_loc_a = FindNearestMineralPatch(drone->pos);
         const Unit *mineral_loc_b =
             FindNearestMineralPatch(mineral_loc_a->pos); // get starting points
-        int loop_cap = 10;
-        int loop_count = 0;
+
         double prev_diff = 0.0;
-        while (loop_count < loop_cap) {
+        for (int i = 0; i < 10; i++) {
           // calculate absolute difference between points:
           Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.y,
                                     mineral_loc_a->pos.y -
@@ -452,7 +451,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             // mineral_loc_b is further from previous minerals by a factor of 10
             break;
           }
-          loop_count += 1;
         }
         Point2D build_position =
             findBuildPositionNearMineral(mineral_loc_b->pos);
