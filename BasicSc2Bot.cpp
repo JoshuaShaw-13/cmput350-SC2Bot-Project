@@ -7,6 +7,7 @@
 #include <sc2api/sc2_typeenums.h>
 #include <sc2api/sc2_unit.h>
 #include <sc2api/sc2_unit_filters.h>
+#define M_PI 3.14159265358979323846264338327950288
 
 using namespace sc2;
 
