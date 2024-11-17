@@ -456,6 +456,26 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                            // mineral patches
         // find the furthest mineral patch from mineral_cluster_a, that exists
         // within the same mineral cluster:
+        mineral_loc_a = mineral_loc_b;
+        mineral_loc_b = FindNearestMineralPatch(mineral_loc_b->pos);
+        for (int i = 0; i < 10; i++) {
+          // calculate absolute difference between points:
+          Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.x,
+                                    mineral_loc_a->pos.y -
+                                        mineral_loc_b->pos.y);
+          double difference_magnitude =
+              sqrt(difference_vector.x * difference_vector.x +
+                   difference_vector.y * difference_vector.y);
+          // compare differences
+          if (difference_magnitude > 10.00) {
+            // mineral_loc_b is further from previous minerals by a factor of 10
+            break;
+          }
+          // otherwise: shift mineral pair
+          mineral_loc_a = mineral_loc_b;
+          mineral_loc_b = FindNearestMineralPatch(mineral_loc_b->pos);
+        }
+        const Unit *mineral_cluster_b = mineral_loc_b;
         Point2D build_position =
             findBuildPositionNearMineral(mineral_loc_b->pos);
         std::cout << "build position: " << build_position.x << " , "
