@@ -435,9 +435,12 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         // group of mineral patches
         const Unit *mineral_loc_a = FindNearestMineralPatch(drone->pos);
         const Unit *mineral_loc_b = FindNearestMineralPatch(mineral_loc_a->pos);
-
-        double prev_diff = 0.0;
+        double prev_diff = 1.0;
+        std::cout << "mineral patch loc: " << mineral_loc_a->pos.x << " , "
+                  << mineral_loc_a->pos.y << std::endl;
         for (int i = 0; i < 10; i++) {
+          std::cout << "mineral patch loc: " << mineral_loc_b->pos.x << " , "
+                    << mineral_loc_b->pos.y << std::endl;
           // calculate absolute difference between points:
           Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.y,
                                     mineral_loc_a->pos.y -
