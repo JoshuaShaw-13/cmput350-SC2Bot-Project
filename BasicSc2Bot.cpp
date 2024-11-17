@@ -411,10 +411,9 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     // if its a hatchery we get the nearest mineral location that we havent
     // visited
     case UNIT_TYPEID::ZERG_HATCHERY: {
-      std::cout << "building hatchery..." << std::endl;
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 300) {
-        std::cout << "we have enough minerals" << std::endl;
+        std::cout << "building hatchery..." << std::endl;
         float rx = GetRandomScalar();
         float ry = GetRandomScalar();
         // find 9th nearest mineral patch
@@ -440,15 +439,16 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                   << mineral_loc_a->pos.y << std::endl;
         for (int i = 0; i < 10; i++) {
           std::cout << "mineral patch loc: " << mineral_loc_b->pos.x << " , "
-                    << mineral_loc_b->pos.y << std::endl;
+                    << mineral_loc_b->pos.y;
           // calculate absolute difference between points:
-          Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.y,
+          Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.x,
                                     mineral_loc_a->pos.y -
                                         mineral_loc_b->pos.y);
           double difference_magnitude =
               sqrt(difference_vector.x * difference_vector.x +
                    difference_vector.y * difference_vector.y);
           // compare differences
+          std::cout << "  -> difference: " << difference_magnitude << std::endl;
           if (difference_magnitude > prev_diff * 10) {
             // mineral_loc_b is further from previous minerals by a factor of 10
             break;
