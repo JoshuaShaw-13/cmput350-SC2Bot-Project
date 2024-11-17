@@ -402,27 +402,6 @@ const Unit *BasicSc2Bot::findIdleDrone() {
 // For now it checks whether its a unit, strucure, or upgrade
 bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     const ObservationInterface *observation = Observation();
-
-    // Check if the item is a MORPH_LAIR upgrade to handle separately.
-    if (buildItem.ability == ABILITY_ID::MORPH_LAIR) {
-        Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
-        for (const auto& hatchery : hatcheries) {
-            // Ensure the Hatchery is completed and idle
-            if (hatchery->build_progress == 1.0f && hatchery->orders.empty()) {
-                // Check for resources
-                if (observation->GetMinerals() >= 150 && observation->GetVespene() >= 100) {
-                    Actions()->UnitCommand(hatchery, ABILITY_ID::MORPH_LAIR);
-                    std::cout << "Upgrading Hatchery to Lair." << std::endl;
-                    return true;
-                } else {
-                    std::cout << "Insufficient resources to morph Lair." << std::endl;
-                }
-            }
-        }
-        std::cout << "No available Hatchery for Lair upgrade." << std::endl;
-        return false;
-    }
-
     // if its a unit build it if we can afford
     if (buildItem.is_unit) {
         // check whether its a unit or a structure
@@ -436,21 +415,21 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             }
             break;
 
-    case UNIT_TYPEID::ZERG_OVERLORD:
-      larva = findIdleLarva();
-      if (larva && observation->GetMinerals() >= 100) {
-        Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_OVERLORD);
-        return true;
-      }
-      break;
-    case UNIT_TYPEID::ZERG_ROACH:
-      larva = findIdleLarva();
-      if (larva && observation->GetMinerals() >= 75 &&
-          observation->GetVespene() >= 25) {
-        Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_ROACH);
-        return true;
-      }
-      break;
+        case UNIT_TYPEID::ZERG_OVERLORD:
+            larva = findIdleLarva();
+            if (larva && observation->GetMinerals() >= 100) {
+                Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_OVERLORD);
+                return true;
+            }
+            break;
+        case UNIT_TYPEID::ZERG_ROACH:
+            larva = findIdleLarva();
+            if (larva && observation->GetMinerals() >= 75 &&
+                observation->GetVespene() >= 25) {
+                Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_ROACH);
+                return true;
+            }
+            break;
 
         case UNIT_TYPEID::ZERG_ZERGLING: {
             const Units spawning_pools = observation->GetUnits(
@@ -543,33 +522,17 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             break;
         }
         case UNIT_TYPEID::ZERG_ROACHWARREN: {
-            const Unit* drone = findAvailableDrone();
-            if (drone && observation->GetMinerals() >= 150) {
-                AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
-                Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
-                if (build_position != Point2D(0.0f, 0.0f)) {
-                    Actions()->UnitCommand(drone, build_ability, build_position);
-                    std::cout << "Building Roach Warren"  << std::endl;
-                    return true;
-                } else {
-                    std::cout << "Can't find location for Roach Warren" << std::endl;
-                }
-                
+        const Unit* drone = findAvailableDrone();
+        if (drone && observation->GetMinerals() >= 150) {
+            AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
+            Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
+            if (build_position != Point2D(0.0f, 0.0f)) {
+                Actions()->UnitCommand(drone, build_ability, build_position);
+                std::cout << "Building Roach Warren"  << std::endl;
+                return true;
             }
             break;
-        }
-        case UNIT_TYPEID::ZERG_SPORECRAWLER: {
-            const Unit* drone = findAvailableDrone();
-            if (drone && observation->GetMinerals() >= 75) {
-                AbilityID build_ability = ABILITY_ID::BUILD_SPORECRAWLER;
-                Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
-                if (build_position != Point2D(0.0f, 0.0f)) {
-                    Actions()->UnitCommand(drone, build_ability, build_position);
-                    return true;
-                }
-            }
-            break;
-        }
+        }}
         
         default:
             const Unit *drone = findAvailableDrone();
@@ -584,122 +547,20 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                 return true;
             }
         }
-      }
-      if (!spawning_pool_done) {
         return false;
-      }
-      larva = findAvailableLarva();
-      if (larva && observation->GetMinerals() >= 50) {
-        Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_ZERGLING);
-        return true;
-      }
-      break;
     }
-
-    case UNIT_TYPEID::ZERG_QUEEN: {
-      const Units spawning_pools = observation->GetUnits(
-          Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_SPAWNINGPOOL));
-      bool spawning_pool_done = false;
-      for (const auto &spawning_pool : spawning_pools) {
-        if (spawning_pool->build_progress == 1.0f) {
-          // Spawning Pool is fully constructed
-          spawning_pool_done = true;
+    // must be an upgrade
+    if (buildItem.ability != ABILITY_ID::INVALID) {
+        Units structures = observation->GetUnits(Unit::Alliance::Self,
+                                                 IsUnit(buildItem.unit_type));
+        if (!structures.empty()) {
+            Actions()->UnitCommand(structures[0], buildItem.ability);
+            return true;
         }
-      }
-      if (!spawning_pool_done) {
-        return false;
-      }
-      for (const auto &hatchery : observation->GetUnits(
-               Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))) {
-        if (hatchery->orders.empty() && observation->GetMinerals() >= 150) {
-          Actions()->UnitCommand(hatchery, ABILITY_ID::TRAIN_QUEEN);
-          return true;
-        }
-      }
-      break;
-    }
-
-    // if its a hatchery we get the nearest mineral location that we havent
-    // visited
-    case UNIT_TYPEID::ZERG_HATCHERY: {
-      const Unit *drone = findAvailableDrone();
-      if (drone && observation->GetMinerals() >= 300) {
-        float rx = GetRandomScalar();
-        float ry = GetRandomScalar();
-        const Unit *nearest_new_mineral_loc =
-            FindNearestMineralPatch(drone->pos);
-        Point2D build_position =
-            findBuildPositionNearMineral(nearest_new_mineral_loc->pos);
-        if (build_position.x != 0.0f || build_position.y != 0.0f) {
-          Actions()->UnitCommand(drone, ABILITY_ID::BUILD_HATCHERY,
-                                 build_position);
-          return true;
-        }
-      }
-      break;
-    }
-    case UNIT_TYPEID::ZERG_EXTRACTOR: {
-      const Unit *drone = findAvailableDrone();
-      if (drone && observation->GetMinerals() >= 25) {
-        const Unit *nearest_vespene_loc = FindNearestVespenePatch(drone->pos);
-
-        Actions()->UnitCommand(drone, ABILITY_ID::BUILD_EXTRACTOR,
-                               nearest_vespene_loc);
-        return true;
-      }
-      break;
-    }
-    case UNIT_TYPEID::ZERG_SPAWNINGPOOL: {
-      const Unit *drone = findAvailableDrone();
-      if (drone && observation->GetMinerals() >= 200) {
-        float rx = GetRandomScalar();
-        float ry = GetRandomScalar();
-        Point2D build_position = findBuildPosition(drone->pos);
-        Actions()->UnitCommand(drone, ABILITY_ID::BUILD_SPAWNINGPOOL,
-                               build_position);
-        return true;
-      }
-      break;
-    }
-    case UNIT_TYPEID::ZERG_ROACHWARREN: {
-      const Unit *drone = findAvailableDrone();
-      if (drone && observation->GetMinerals() >= 150) {
-        AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
-        Point2D build_position =
-            FindPlacementLocation(build_ability, drone->pos);
-        if (build_position != Point2D(0.0f, 0.0f)) {
-          Actions()->UnitCommand(drone, build_ability, build_position);
-          std::cout << "Building Roach Warren" << std::endl;
-          return true;
-        }
-        break;
-      }
-    }
-
-    default:
-      const Unit *drone = findAvailableDrone();
-      if (drone) {
-        float rx = GetRandomScalar();
-        float ry = GetRandomScalar();
-        Point2D build_position = Point2D(drone->pos.x - 50, drone->pos.y - 100);
-
-        Actions()->UnitCommand(drone, buildItem.ability, build_position);
-        return true;
-      }
     }
     return false;
-  }
-  // must be an upgrade
-  if (buildItem.ability != ABILITY_ID::INVALID) {
-    Units structures = observation->GetUnits(Unit::Alliance::Self,
-                                             IsUnit(buildItem.unit_type));
-    if (!structures.empty()) {
-      Actions()->UnitCommand(structures[0], buildItem.ability);
-      return true;
-    }
-  }
-  return false;
 }
+
 
 bool BasicSc2Bot::isArmyReady() {
   int roach_count = 0;
