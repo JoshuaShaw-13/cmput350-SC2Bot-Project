@@ -426,6 +426,9 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           next_nearest_new_mineral_loc =
               FindNearestMineralPatch(next_nearest_new_mineral_loc->pos);
         }
+        std::cout << "mineral patch loc: "
+                  << next_nearest_new_mineral_loc->pos.x << " , "
+                  << next_nearest_new_mineral_loc->pos.y << std::endl;
         Point2D build_position =
             findBuildPositionNearMineral(next_nearest_new_mineral_loc->pos);
         std::cout << "build position: " << build_position.x << " , "
