@@ -414,8 +414,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 300) {
         std::cout << "building hatchery..." << std::endl;
-        float rx = GetRandomScalar();
-        float ry = GetRandomScalar();
         // find 9th nearest mineral patch
         // const Unit *next_nearest_new_mineral_loc =
         //     FindNearestMineralPatch(drone->pos);
