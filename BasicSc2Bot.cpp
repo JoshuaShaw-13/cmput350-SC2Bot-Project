@@ -486,8 +486,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         std::cout << "direction vector: " << normalized_direction_vector.x
                   << " , " << normalized_direction_vector.y << std::endl;
         Point2D hatchery_location(
-            cluster_center.x + (normalized_direction_vector.x * 5.0f),
-            cluster_center.y + (normalized_direction_vector.y * 5.0f));
+            cluster_center.x + (normalized_direction_vector.x * 10.0f),
+            cluster_center.y + (normalized_direction_vector.y * 10.0f));
         std::cout << "calculated hatchery point: " << hatchery_location.x
                   << " , " << hatchery_location.y << std::endl;
         // find build position
