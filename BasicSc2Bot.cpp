@@ -3,7 +3,6 @@
 #include <iostream>
 #include <ostream>
 #include <sc2api/sc2_agent.h>
-#include <sc2api/sc2_common.h>
 #include <sc2api/sc2_interfaces.h>
 #include <sc2api/sc2_typeenums.h>
 #include <sc2api/sc2_unit.h>
@@ -97,7 +96,6 @@ void BasicSc2Bot::OnStep() {
     // use the attack base queue
     if (isArmyReady() && !launching_attack) {
         if (!enemy_bases.isEmpty()) {
-            std::cout << enemy_bases.peek()->loc.x << " base y: " << enemy_bases.peek()->loc.y << std::endl;
             launchAttack(enemy_bases.peek()->loc);
         }
     }
@@ -146,9 +144,28 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
         break;
     }
     case UNIT_TYPEID::ZERG_QUEEN: {
-        Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA);
+        Units hatcheries = Observation()->GetUnits(Unit::Alliance::Self, IsTownHall());
+        if (!hatcheries.empty()) {
+            // Find the closest Hatchery to the Queen
+            const Unit* closest_hatchery = nullptr;
+            float min_distance = std::numeric_limits<float>::max();
+            for (const auto& hatchery : hatcheries) {
+                if (hatchery->build_progress == 1.0f) {
+                    float distance = DistanceSquared2D(unit->pos, hatchery->pos);
+                    if (distance < min_distance) {
+                        min_distance = distance;
+                        closest_hatchery = hatchery;
+                        min_distance = distance;
+                    }
+                }
+            }
+            if (closest_hatchery) {
+                Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA, closest_hatchery);
+            }
+        }
         break;
-    }
+  }
+
     case UNIT_TYPEID::ZERG_ZERGLING: {
         Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
         break;
@@ -480,7 +497,19 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             }
             break;
         }
-
+        case UNIT_TYPEID::ZERG_ROACHWARREN: {
+        const Unit* drone = findAvailableDrone();
+        if (drone && observation->GetMinerals() >= 150) {
+            AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
+            Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
+            if (build_position != Point2D(0.0f, 0.0f)) {
+                Actions()->UnitCommand(drone, build_ability, build_position);
+                std::cout << "Building Roach Warren"  << std::endl;
+                return true;
+            }
+            break;
+        }}
+        
         default:
             const Unit *drone = findAvailableDrone();
             if (drone) {
@@ -528,6 +557,20 @@ void BasicSc2Bot::launchAttack(const Point2D &target) {
             unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
             Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target);
             launching_attack = true;
+        }
+    }
+}
+
+Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability, const Point2D& near_point) {
+    // Try random points around the near_point
+    for (int i = 0; i < 20; ++i) { // Increased iterations for better chances
+        float rx = GetRandomScalar() * 10.0f - 5.0f; // Center around near_point
+        float ry = GetRandomScalar() * 10.0f - 5.0f;
+        Point2D test_point = near_point + Point2D(rx, ry);
+
+        // Check if the position is valid for building
+        if (Query()->Placement(ability, test_point)) {
+            return test_point;
         }
     }
 }
