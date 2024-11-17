@@ -468,9 +468,20 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                   << mineral_cluster_b->pos.y << std::endl;
         std::cout << "cluster center: " << cluster_center.x << " , "
                   << cluster_center.y << std::endl;
+        // get map center
         Point2D map_center = getMapCenter();
         std::cout << "map center: " << map_center.x << map_center.y
                   << std::endl;
+        // get vector from cluster center to map center, normalize into a
+        // direction vector
+        Point2D direction_vector(map_center.x - cluster_center.x,
+                                 map_center.y - cluster_center.y);
+        double direction_vector_magnitude =
+            sqrt(direction_vector.x * direction_vector.x +
+                 direction_vector.y * direction_vector.y);
+        Point2D normalized_direction_vector(
+            direction_vector_magnitude * direction_vector.x,
+            direction_vector_magnitude * direction_vector.y);
         // find build position
         Point2D build_position = findBuildPositionNearMineral(cluster_center);
         std::cout << "build position: " << build_position.x << " , "
