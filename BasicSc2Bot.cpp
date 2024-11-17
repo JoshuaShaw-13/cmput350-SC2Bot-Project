@@ -449,7 +449,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                    difference_vector.y * difference_vector.y);
           // compare differences
           std::cout << "  -> difference: " << difference_magnitude << std::endl;
-          if (difference_magnitude > prev_diff * 10) {
+          if (difference_magnitude > 10.00) {
             // mineral_loc_b is further from previous minerals by a factor of 10
             break;
           }
