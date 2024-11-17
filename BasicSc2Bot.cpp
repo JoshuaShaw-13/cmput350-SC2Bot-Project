@@ -15,74 +15,72 @@ using namespace sc2;
 GameManager state;
 
 void BasicSc2Bot::OnGameStart() {
-  const ObservationInterface *observation = Observation();
-  scout_locations = observation->GetGameInfo().enemy_start_locations;
+    const ObservationInterface *observation = Observation();
+    scout_locations = observation->GetGameInfo().enemy_start_locations;
 
-  // Build drones if not at the given army cap for next item
-  build_order.push(BuildOrderItem(
-      13, UNIT_TYPEID::ZERG_OVERLORD)); // At 13 cap, build an Overlord
-  build_order.push(BuildOrderItem(
-      16, UNIT_TYPEID::ZERG_HATCHERY)); // At 16 cap, build a Hatchery
-  build_order.push(BuildOrderItem(
-      18, UNIT_TYPEID::ZERG_EXTRACTOR)); // At 18 cap, build an Extractor
-  build_order.push(BuildOrderItem(
-      19,
-      UNIT_TYPEID::ZERG_SPAWNINGPOOL)); // At 17 cap, build a Spawning Pool
-  build_order.push(BuildOrderItem(
-      20, UNIT_TYPEID::ZERG_OVERLORD)); // At 20 cap, build an Overlord
-  build_order.push(
-      BuildOrderItem(0, UNIT_TYPEID::ZERG_QUEEN)); // Build 2 Queens
-  build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_QUEEN));
-  build_order.push(
-      BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING)); // Build 4 Zerglings
-  build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
-  build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
-  build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
-  build_order.push(BuildOrderItem(
-      32, UNIT_TYPEID::ZERG_OVERLORD)); // At 32 cap, build an Overlord
-  build_order.push(
-      BuildOrderItem(0, ABILITY_ID::MORPH_LAIR)); // Upgrade Hatchery to Lair
-  build_order.push(BuildOrderItem(
-      36, UNIT_TYPEID::ZERG_OVERLORD)); // At 36 cap, build an Overlord
-  build_order.push(
-      BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN)); // Build a Roach Warren
-  build_order.push(BuildOrderItem(
-      0, UNIT_TYPEID::ZERG_EXTRACTOR)); // Build 2 more Extractors
-  build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_EXTRACTOR));
-  build_order.push(BuildOrderItem(
-      0, UNIT_TYPEID::ZERG_SPORECRAWLER)); // Build 2 Spore Crawlers
-  build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_SPORECRAWLER));
+    // Build drones if not at the given army cap for next item
+    build_order.push(BuildOrderItem(
+        13, UNIT_TYPEID::ZERG_OVERLORD)); // At 13 cap, build an Overlord
+    build_order.push(BuildOrderItem(
+        16, UNIT_TYPEID::ZERG_HATCHERY)); // At 16 cap, build a Hatchery
+    build_order.push(BuildOrderItem(
+        18, UNIT_TYPEID::ZERG_EXTRACTOR)); // At 18 cap, build an Extractor
+    build_order.push(BuildOrderItem(
+        17,
+        UNIT_TYPEID::ZERG_SPAWNINGPOOL)); // At 17 cap, build a Spawning Pool
+    build_order.push(BuildOrderItem(
+        20, UNIT_TYPEID::ZERG_OVERLORD)); // At 20 cap, build an Overlord
+    build_order.push(
+        BuildOrderItem(0, UNIT_TYPEID::ZERG_QUEEN)); // Build 2 Queens
+    build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_QUEEN));
+    build_order.push(
+        BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING)); // Build 4 Zerglings
+    build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
+    build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
+    build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
+    build_order.push(BuildOrderItem(
+        32, UNIT_TYPEID::ZERG_OVERLORD)); // At 32 cap, build an Overlord
+    build_order.push(
+        BuildOrderItem(0, ABILITY_ID::MORPH_LAIR)); // Upgrade Hatchery to Lair
+    build_order.push(BuildOrderItem(
+        36, UNIT_TYPEID::ZERG_OVERLORD)); // At 36 cap, build an Overlord
+    build_order.push(BuildOrderItem(
+        0, UNIT_TYPEID::ZERG_ROACHWARREN)); // Build a Roach Warren
+    build_order.push(BuildOrderItem(
+        0, UNIT_TYPEID::ZERG_EXTRACTOR)); // Build 2 more Extractors
+    build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_EXTRACTOR));
+    build_order.push(BuildOrderItem(
+        0, UNIT_TYPEID::ZERG_SPORECRAWLER)); // Build 2 Spore Crawlers
+    build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_SPORECRAWLER));
 
   // find overlord rally location depending on base start location
-  const Unit *start_base =
-      observation
-          ->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))
-          .front();
-  Point2D start_location = start_base->pos;
-  int map_width = observation->GetGameInfo().width;
-  int map_height = observation->GetGameInfo().height;
-  std::cout << map_width << " " << map_height;
-  int x_half = map_width / 2;
-  int y_half = map_height / 2;
-  if (start_location.x > x_half) {
-    state.overlord_rally_point.x = map_width - 1;
-  }
-  if (start_location.y > y_half) {
-    state.overlord_rally_point.y = map_height - 1;
-  }
-
-  // Send the first Overlord to scout one of the scout_locations and remove it
-  // from further scouting consideration
-
-  Units overlords = observation->GetUnits(Unit::Alliance::Self,
-                                          IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
-  if (!overlords.empty() && !scout_locations.empty()) {
-    const Unit *first_overlord = overlords.front();
-    Actions()->UnitCommand(first_overlord, ABILITY_ID::SMART,
-                           scout_locations.front());
-    scout_locations.erase(scout_locations.begin());
-    state.scouts.push_back(first_overlord);
-  }
+    const Unit *start_base =
+        observation
+            ->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))
+            .front();
+    Point2D start_location = start_base->pos;
+    int map_width = observation->GetGameInfo().width;
+    int map_height = observation->GetGameInfo().height;
+    std::cout << map_width << " " << map_height;
+    int x_half = map_width / 2;
+    int y_half = map_height / 2;
+    if (start_location.x > x_half) {
+      state.overlord_rally_point.x = map_width - 1;
+    }
+    if (start_location.y > y_half) {
+      state.overlord_rally_point.y = map_height - 1;
+    }
+  
+    // Send the first Overlord to scout one of the scout_locations and remove it
+    // from further scouting consideration
+    Units overlords = observation->GetUnits(Unit::Alliance::Self,
+                                            IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
+    if (!overlords.empty() && !scout_locations.empty()) {
+        const Unit *first_overlord = overlords.front();
+        Actions()->UnitCommand(first_overlord, ABILITY_ID::SMART,
+                               scout_locations.front());
+        scout_locations.erase(scout_locations.begin());
+    }
 }
 
 void BasicSc2Bot::OnStep() {
@@ -126,20 +124,55 @@ void BasicSc2Bot::OnStep() {
 }
 
 void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
-  state.idleUnits.push_back(unit);
-  switch (unit->unit_type.ToType()) {
-  case UNIT_TYPEID::ZERG_DRONE: {
-    Units extractors = Observation()->GetUnits(
-        Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_EXTRACTOR));
-    const Unit *extractor_to_mine = nullptr;
-    for (auto extractor : extractors) {
-      int assigned_workers = extractor->assigned_harvesters;
-      int max_workers = extractor->ideal_harvesters;
+    state.idleUnits.push_back(unit);
+    switch (unit->unit_type.ToType()) {
+    case UNIT_TYPEID::ZERG_DRONE: {
+        Units extractors = Observation()->GetUnits(
+            Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_EXTRACTOR));
+        const Unit *extractor_to_mine = nullptr;
+        for (auto extractor : extractors) {
+            int assigned_workers = extractor->assigned_harvesters;
+            int max_workers = extractor->ideal_harvesters;
 
-      if (assigned_workers < max_workers && max_workers > 0) {
-        extractor_to_mine = extractor;
-        break; // Found an Extractor with less than three workers
-      }
+            if (assigned_workers < max_workers && max_workers > 0) {
+                extractor_to_mine = extractor;
+                break; // Found an Extractor with less than three workers
+            }
+        }
+        if (extractor_to_mine) {
+            Actions()->UnitCommand(unit, ABILITY_ID::HARVEST_GATHER,
+                                   extractor_to_mine);
+        } else {
+            const Unit *mineral_target = FindNearestMineralPatch(unit->pos);
+            if (!mineral_target) {
+                break;
+            }
+            Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
+        }
+        break;
+    }
+    case UNIT_TYPEID::ZERG_QUEEN: {
+        Units hatcheries = Observation()->GetUnits(Unit::Alliance::Self, IsTownHall());
+        if (!hatcheries.empty()) {
+            // Find the closest Hatchery to the Queen
+            const Unit* closest_hatchery = nullptr;
+            float min_distance = std::numeric_limits<float>::max();
+            for (const auto& hatchery : hatcheries) {
+                if (hatchery->build_progress == 1.0f) {
+                    float distance = DistanceSquared2D(unit->pos, hatchery->pos);
+                    if (distance < min_distance) {
+                        min_distance = distance;
+                        closest_hatchery = hatchery;
+                        min_distance = distance;
+                    }
+                }
+            }
+            if (closest_hatchery) {
+                Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA, closest_hatchery);
+            }
+        }
+        break;
+  }
     }
     if (extractor_to_mine) {
       Actions()->UnitCommand(unit, ABILITY_ID::HARVEST_GATHER,
@@ -164,10 +197,6 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
                              state.overlord_rally_point);
     }
-    break;
-  }
-  case UNIT_TYPEID::ZERG_QUEEN: {
-    Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA);
     break;
   }
   case UNIT_TYPEID::ZERG_ZERGLING: {
@@ -357,35 +386,77 @@ const Unit *BasicSc2Bot::findIdleDrone() {
 // Eventually will use manager
 // For now it checks whether its a unit, strucure, or upgrade
 bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
-  const ObservationInterface *observation = Observation();
-  // if its a unit build it if we can afford
-  if (buildItem.is_unit) {
-    // check whether its a unit or a structure
-    const Unit *larva = nullptr;
-    switch (buildItem.unit_type) {
-    case UNIT_TYPEID::ZERG_DRONE:
-      larva = findIdleLarva();
-      if (larva) {
-        Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_DRONE);
-        return true;
-      }
-      break;
+    const ObservationInterface *observation = Observation();
+     // Check if the item is a MORPH_LAIR upgrade to handle separately.
+    if (buildItem.ability == ABILITY_ID::MORPH_LAIR) {
+        Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
+        for (const auto& hatchery : hatcheries) {
+            // Ensure the Hatchery is completed and idle
+            if (hatchery->build_progress == 1.0f && hatchery->orders.empty()) {
+                // Check for resources
+                if (observation->GetMinerals() >= 150 && observation->GetVespene() >= 100) {
+                    Actions()->UnitCommand(hatchery, ABILITY_ID::MORPH_LAIR);
+                    std::cout << "Upgrading Hatchery to Lair." << std::endl;
+                    return true;
+                } else {
+                    std::cout << "Insufficient resources to morph Lair." << std::endl;
+                }
+            }
+        }
+        std::cout << "No available Hatchery for Lair upgrade." << std::endl;
+        return false;
+    }
 
-    case UNIT_TYPEID::ZERG_OVERLORD:
-      larva = findIdleLarva();
-      if (larva && observation->GetMinerals() >= 100) {
-        Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_OVERLORD);
-        return true;
-      }
-      break;
-    case UNIT_TYPEID::ZERG_ROACH:
-      larva = findIdleLarva();
-      if (larva && observation->GetMinerals() >= 75 &&
-          observation->GetVespene() >= 25) {
-        Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_ROACH);
-        return true;
-      }
-      break;
+    // if its a unit build it if we can afford
+    if (buildItem.is_unit) {
+        // check whether its a unit or a structure
+        const Unit *larva = nullptr;
+        switch (buildItem.unit_type) {
+        case UNIT_TYPEID::ZERG_DRONE:
+            larva = findIdleLarva();
+            if (larva) {
+                Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_DRONE);
+                return true;
+            }
+            break;
+
+        case UNIT_TYPEID::ZERG_OVERLORD:
+            larva = findIdleLarva();
+            if (larva && observation->GetMinerals() >= 100) {
+                Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_OVERLORD);
+                return true;
+            }
+            break;
+        case UNIT_TYPEID::ZERG_ROACH:
+            larva = findIdleLarva();
+            if (larva && observation->GetMinerals() >= 75 &&
+                observation->GetVespene() >= 25) {
+                Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_ROACH);
+                return true;
+            }
+            break;
+
+        case UNIT_TYPEID::ZERG_ZERGLING: {
+            const Units spawning_pools = observation->GetUnits(
+                Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_SPAWNINGPOOL));
+                bool spawning_pool_done = false;
+            for (const auto &spawning_pool : spawning_pools) {
+                if (spawning_pool->build_progress == 1.0f) {
+                    // Spawning Pool is fully constructed
+                    spawning_pool_done = true;
+                }
+            }
+            if (!spawning_pool_done) {
+                return false;
+            }
+            larva = findAvailableLarva();
+            if (larva &&
+                observation->GetMinerals() >= 50) {
+                Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_ZERGLING);
+                return true;
+            }
+            break;
+        }
 
     case UNIT_TYPEID::ZERG_ZERGLING: {
       const Units spawning_pools = observation->GetUnits(
@@ -427,9 +498,28 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           Actions()->UnitCommand(hatchery, ABILITY_ID::TRAIN_QUEEN);
           return true;
         }
-      }
-      break;
-    }
+        case UNIT_TYPEID::ZERG_ROACHWARREN: {
+        const Unit* drone = findAvailableDrone();
+        if (drone && observation->GetMinerals() >= 150) {
+            AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
+            Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
+            if (build_position != Point2D(0.0f, 0.0f)) {
+                Actions()->UnitCommand(drone, build_ability, build_position);
+                std::cout << "Building Roach Warren"  << std::endl;
+                return true;
+            } else {
+                std::cout << "No valid position found for Roach Warren." << std::endl;
+            }
+        } else {
+            if (!drone) {
+                std::cout << "No available Drone to build Roach Warren." << std::endl;
+            }
+            if (observation->GetMinerals() < 150) {
+                std::cout << "Not enough minerals to build Roach Warren." << std::endl;
+            }
+        }
+        break;
+        }
 
     // if its a hatchery we get the nearest mineral location that we havent
     // visited
@@ -531,4 +621,20 @@ bool BasicSc2Bot::inRallyRange(const Point2D &pos, const Point2D &rally,
   } else {
     return false;
   }
+}
+
+Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability, const Point2D& near_point) {
+    // Try random points around the near_point
+    for (int i = 0; i < 20; ++i) { // Increased iterations for better chances
+        float rx = GetRandomScalar() * 10.0f - 5.0f; // Center around near_point
+        float ry = GetRandomScalar() * 10.0f - 5.0f;
+        Point2D test_point = near_point + Point2D(rx, ry);
+
+        // Check if the position is valid for building
+        if (Query()->Placement(ability, test_point)) {
+            return test_point;
+        }
+    }
+    // No valid position found
+    return Point2D(0.0f, 0.0f); // Indicates failure
 }
