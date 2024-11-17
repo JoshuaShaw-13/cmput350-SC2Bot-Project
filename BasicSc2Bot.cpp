@@ -414,20 +414,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 300) {
         std::cout << "building hatchery..." << std::endl;
-        // find 9th nearest mineral patch
-        // const Unit *next_nearest_new_mineral_loc =
-        //     FindNearestMineralPatch(drone->pos);
-        // for (int i = 0; i < 7; i++) {
-        //   std::cout << "mineral patch loc: "
-        //             << next_nearest_new_mineral_loc->pos.x << " , "
-        //             << next_nearest_new_mineral_loc->pos.y << std::endl;
-        //   next_nearest_new_mineral_loc =
-        //       FindNearestMineralPatch(next_nearest_new_mineral_loc->pos);
-        // }
-        // std::cout << "mineral patch loc: "
-        //           << next_nearest_new_mineral_loc->pos.x << " , "
-        //           << next_nearest_new_mineral_loc->pos.y << std::endl;
-
         // find "drop-off" point in mineral location differences to find next
         // group of mineral patches
         const Unit *mineral_loc_a = FindNearestMineralPatch(drone->pos);
