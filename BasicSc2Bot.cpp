@@ -448,6 +448,11 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
               sqrt(difference_vector.x * difference_vector.x +
                    difference_vector.y * difference_vector.y);
           // compare differences
+          if (difference_magnitude > prev_diff * 10) {
+            // mineral_loc_b is further from previous minerals by a factor of 10
+            break;
+          }
+          loop_count += 1;
         }
         Point2D build_position =
             findBuildPositionNearMineral(mineral_loc_b->pos);
