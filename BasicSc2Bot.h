@@ -26,6 +26,7 @@ public:
 private:
   const Unit *FindNearestMineralPatch(const Point2D&);
   const Unit *FindNearestVespenePatch(const Point2D&);
+  const Point2D getValidRallyPoint(const Point2D& base_position, QueryInterface* query, float max_radius = 15.0f, float step = 2.0f);
   Point2D FindPlacementLocation(AbilityID ability, const Point2D& near_point);
   const Unit *findIdleLarva();
   const Unit *findIdleDrone();
