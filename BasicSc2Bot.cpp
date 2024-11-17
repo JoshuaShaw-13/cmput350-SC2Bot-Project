@@ -3,6 +3,7 @@
 #include <iostream>
 #include <ostream>
 #include <sc2api/sc2_agent.h>
+#include <sc2api/sc2_common.h>
 #include <sc2api/sc2_interfaces.h>
 #include <sc2api/sc2_typeenums.h>
 #include <sc2api/sc2_unit.h>
@@ -335,6 +336,7 @@ Point2D BasicSc2Bot::findBuildPosition(const Point2D &start) {
             }
         }
     }
+    return Point2D(0,0);
 }
 const Unit *BasicSc2Bot::findIdleLarva() {
     for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
