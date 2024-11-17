@@ -456,6 +456,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           // otherwise: shift mineral pair
           mineral_loc_a = mineral_loc_b;
           mineral_loc_b = FindNearestMineralPatch(mineral_loc_b->pos);
+          prev_diff = difference_magnitude;
         }
         Point2D build_position =
             findBuildPositionNearMineral(mineral_loc_b->pos);
