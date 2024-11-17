@@ -470,22 +470,26 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                   << cluster_center.y << std::endl;
         // get map center
         Point2D map_center = getMapCenter();
-        std::cout << "map center: " << map_center.x << map_center.y
+        std::cout << "map center: " << map_center.x << " , " << map_center.y
                   << std::endl;
         // get vector from cluster center to map center, normalize into a
         // direction vector
         Point2D direction_vector(map_center.x - cluster_center.x,
                                  map_center.y - cluster_center.y);
         double direction_vector_magnitude =
-            sqrt(direction_vector.x * direction_vector.x +
-                 direction_vector.y * direction_vector.y);
+            1.00f / sqrt(direction_vector.x * direction_vector.x +
+                         direction_vector.y * direction_vector.y);
         Point2D normalized_direction_vector(
             direction_vector_magnitude * direction_vector.x,
             direction_vector_magnitude * direction_vector.y);
         // create point for hatchery
+        std::cout << "direction vector: " << normalized_direction_vector.x
+                  << " , " << normalized_direction_vector.y << std::endl;
         Point2D hatchery_location(
             cluster_center.x + (normalized_direction_vector.x * 5.0f),
             cluster_center.y + (normalized_direction_vector.y * 5.0f));
+        std::cout << "calculated hatchery point: " << hatchery_location.x
+                  << " , " << hatchery_location.y << std::endl;
         // find build position
         Point2D build_position =
             findBuildPositionNearMineral(hatchery_location);
