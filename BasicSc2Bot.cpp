@@ -1,5 +1,6 @@
 #include "BasicSc2Bot.h"
 #include "GameManager.h"
+#include <cmath>
 #include <iostream>
 #include <ostream>
 #include <sc2api/sc2_agent.h>
@@ -416,21 +417,40 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         std::cout << "we have enough minerals" << std::endl;
         float rx = GetRandomScalar();
         float ry = GetRandomScalar();
-        // TODO refactor to find 9th nearest mineral patch
-        const Unit *next_nearest_new_mineral_loc =
-            FindNearestMineralPatch(drone->pos);
-        for (int i = 0; i < 7; i++) {
-          std::cout << "mineral patch loc: "
-                    << next_nearest_new_mineral_loc->pos.x << " , "
-                    << next_nearest_new_mineral_loc->pos.y << std::endl;
-          next_nearest_new_mineral_loc =
-              FindNearestMineralPatch(next_nearest_new_mineral_loc->pos);
+        // find 9th nearest mineral patch
+        // const Unit *next_nearest_new_mineral_loc =
+        //     FindNearestMineralPatch(drone->pos);
+        // for (int i = 0; i < 7; i++) {
+        //   std::cout << "mineral patch loc: "
+        //             << next_nearest_new_mineral_loc->pos.x << " , "
+        //             << next_nearest_new_mineral_loc->pos.y << std::endl;
+        //   next_nearest_new_mineral_loc =
+        //       FindNearestMineralPatch(next_nearest_new_mineral_loc->pos);
+        // }
+        // std::cout << "mineral patch loc: "
+        //           << next_nearest_new_mineral_loc->pos.x << " , "
+        //           << next_nearest_new_mineral_loc->pos.y << std::endl;
+
+        // find "drop-off" point in mineral location differences to find next
+        // group of mineral patches
+        const Unit *mineral_loc_a = FindNearestMineralPatch(drone->pos);
+        const Unit *mineral_loc_b =
+            FindNearestMineralPatch(mineral_loc_a->pos); // get starting points
+        int loop_cap = 10;
+        int loop_count = 0;
+        double prev_diff = 0.0;
+        while (loop_count < loop_cap) {
+          // calculate absolute difference between points:
+          Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.y,
+                                    mineral_loc_a->pos.y -
+                                        mineral_loc_b->pos.y);
+          double difference_magnitude =
+              sqrt(difference_vector.x * difference_vector.x +
+                   difference_vector.y * difference_vector.y);
+          // compare differences
         }
-        std::cout << "mineral patch loc: "
-                  << next_nearest_new_mineral_loc->pos.x << " , "
-                  << next_nearest_new_mineral_loc->pos.y << std::endl;
         Point2D build_position =
-            findBuildPositionNearMineral(next_nearest_new_mineral_loc->pos);
+            findBuildPositionNearMineral(mineral_loc_b->pos);
         std::cout << "build position: " << build_position.x << " , "
                   << build_position.y << std::endl;
         if (build_position.x != 0.0f || build_position.y != 0.0f) {
