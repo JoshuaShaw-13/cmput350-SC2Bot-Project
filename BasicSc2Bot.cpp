@@ -568,3 +568,16 @@ void BasicSc2Bot::launchAttack(const Point2D &target) {
     }
   }
 }
+// Function to calculate the center of the map
+Point2D BasicSc2Bot::getMapCenter() const {
+  // Get the playable map area
+  const sc2::GameInfo &game_info = Observation()->GetGameInfo();
+  sc2::Point2D playable_min = game_info.playable_min;
+  sc2::Point2D playable_max = game_info.playable_max;
+
+  // Calculate the center point
+  float center_x = (playable_min.x + playable_max.x) / 2.0f;
+  float center_y = (playable_min.y + playable_max.y) / 2.0f;
+
+  return sc2::Point2D(center_x, center_y);
+}
