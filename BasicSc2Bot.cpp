@@ -476,6 +476,11 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           mineral_loc_b = FindNearestMineralPatch(mineral_loc_b->pos);
         }
         const Unit *mineral_cluster_b = mineral_loc_a;
+        // calculate center point between mineral_clusters_a and
+        // mineral_cluster_b:
+        Point2D cluster_center(
+            (mineral_cluster_a->pos.x + mineral_cluster_b->pos.x) / 2,
+            (mineral_cluster_a->pos.y + mineral_cluster_b->pos.y) / 2);
         Point2D build_position =
             findBuildPositionNearMineral(mineral_loc_b->pos);
         std::cout << "build position: " << build_position.x << " , "
