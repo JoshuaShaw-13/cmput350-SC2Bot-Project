@@ -7,6 +7,7 @@
 #include <sc2api/sc2_typeenums.h>
 #include <sc2api/sc2_unit.h>
 #include <sc2api/sc2_unit_filters.h>
+#define M_PI 3.14
 
 using namespace sc2;
 
@@ -75,6 +76,7 @@ void BasicSc2Bot::OnStep() {
         if (current_supply >= buildItem.supply) {
             if (tryBuild(buildItem)) {
                 build_order.pop();
+                std::cout << "Building: " << UnitTypeToName(buildItem.unit_type) << std::endl;
             }
         } else {
             const Unit *larva = nullptr;
@@ -359,7 +361,8 @@ const Unit *BasicSc2Bot::findIdleDrone() {
 // For now it checks whether its a unit, strucure, or upgrade
 bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     const ObservationInterface *observation = Observation();
-     // Check if the item is a MORPH_LAIR upgrade to handle separately.
+
+    // Check if the item is a MORPH_LAIR upgrade to handle separately.
     if (buildItem.ability == ABILITY_ID::MORPH_LAIR) {
         Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
         for (const auto& hatchery : hatcheries) {
@@ -499,28 +502,34 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             break;
         }
         case UNIT_TYPEID::ZERG_ROACHWARREN: {
-        const Unit* drone = findAvailableDrone();
-        if (drone && observation->GetMinerals() >= 150) {
-            AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
-            Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
-            if (build_position != Point2D(0.0f, 0.0f)) {
-                Actions()->UnitCommand(drone, build_ability, build_position);
-                std::cout << "Building Roach Warren"  << std::endl;
-                return true;
-            } else {
-                std::cout << "No valid position found for Roach Warren." << std::endl;
+            const Unit* drone = findAvailableDrone();
+            if (drone && observation->GetMinerals() >= 150) {
+                AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
+                Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
+                if (build_position != Point2D(0.0f, 0.0f)) {
+                    Actions()->UnitCommand(drone, build_ability, build_position);
+                    std::cout << "Building Roach Warren"  << std::endl;
+                    return true;
+                } else {
+                    std::cout << "Can't find location for Roach Warren" << std::endl;
+                }
+                
             }
-        } else {
-            if (!drone) {
-                std::cout << "No available Drone to build Roach Warren." << std::endl;
-            }
-            if (observation->GetMinerals() < 150) {
-                std::cout << "Not enough minerals to build Roach Warren." << std::endl;
-            }
+            break;
         }
-        break;
+        case UNIT_TYPEID::ZERG_SPORECRAWLER: {
+            const Unit* drone = findAvailableDrone();
+            if (drone && observation->GetMinerals() >= 75) {
+                AbilityID build_ability = ABILITY_ID::BUILD_SPORECRAWLER;
+                Point2D build_position = FindPlacementLocation(build_ability, drone->pos);
+                if (build_position != Point2D(0.0f, 0.0f)) {
+                    Actions()->UnitCommand(drone, build_ability, build_position);
+                    return true;
+                }
+            }
+            break;
         }
-
+        
         default:
             const Unit *drone = findAvailableDrone();
             if (drone) {
@@ -580,7 +589,7 @@ Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability, const Point2D& nea
         Point2D test_point = near_point + Point2D(rx, ry);
 
         // Check if the position is valid for building
-        if (Query()->Placement(ability, test_point)) {
+        if (Query()->Placement(ability, test_point) && Observation()->HasCreep(test_point)) {
             return test_point;
         }
     }
