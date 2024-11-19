@@ -559,6 +559,9 @@ BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
       // mineral_loc_b is further from previous minerals by a factor of 10
       return mineral_loc_b;
     }
+    // get next mineral pairs
+    mineral_loc_a = mineral_loc_b;
+    mineral_loc_b = FindNearestVespenePatch(mineral_loc_b->pos);
   }
   return mineral_loc_b; // in case of next group not found within 10 minerals,
                         // return 10th mineral patch
