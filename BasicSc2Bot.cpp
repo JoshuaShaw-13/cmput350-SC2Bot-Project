@@ -546,11 +546,8 @@ BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
   const Unit *mineral_loc_b = FindNearestMineralPatch(mineral_loc_a->pos);
   for (int i = 0; i < 10; i++) {
     // calculate absolute difference between points:
-    Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.x,
-                              mineral_loc_a->pos.y - mineral_loc_b->pos.y);
     double difference_magnitude =
-        sqrt(difference_vector.x * difference_vector.x +
-             difference_vector.y * difference_vector.y);
+        getVectorDifferenceMagnitude(mineral_loc_a->pos, mineral_loc_b->pos);
     // compare differences
     if (difference_magnitude > 10.00) {
       // mineral_loc_b is further from previous minerals by a factor of 10
@@ -567,6 +564,9 @@ double BasicSc2Bot::getVectorDifferenceMagnitude(Point2D vec_a, Point2D vec_b) {
   /**
    * calculates and returns the magnitude of the difference between two points
    */
+  Point2D difference_vector(vec_a.x - vec_b.x, vec_a.y - vec_b.y);
+  return sqrt(difference_vector.x * difference_vector.x +
+              difference_vector.y * difference_vector.y);
 }
 Point2D BasicSc2Bot::getDirectionVector(Point2D vec_a, Point2D vec_b) {
   /**
