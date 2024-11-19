@@ -422,8 +422,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                   << " , " << mineral_cluster_b->pos.y << std::endl;
         // get map center
         Point2D map_center = getMapCenter();
-        std::cout << "map center: " << map_center.x << " , " << map_center.y
-                  << std::endl;
         // get vector from cluster center to map center, normalize into a
         // direction vector
         Point2D direction_vector(
@@ -432,8 +430,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         std::cout << "direction vector: " << direction_vector.x << " , "
                   << direction_vector.y << std::endl;
         Point2D hatchery_location(
-            mineral_cluster_b->pos.x + (direction_vector.x * 10.0f),
-            mineral_cluster_b->pos.y + (direction_vector.y * 10.0f));
+            mineral_cluster_b->pos.x + (direction_vector.x * 15.0f),
+            mineral_cluster_b->pos.y + (direction_vector.y * 15.0f));
         std::cout << "calculated hatchery point: " << hatchery_location.x
                   << " , " << hatchery_location.y << std::endl;
         // find build position
@@ -548,7 +546,7 @@ BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
   for (int i = 0; i < 10; i++) {
     // compare differences
     if (getVectorDifferenceMagnitude(mineral_loc_a->pos, mineral_loc_b->pos) >
-        10.00) {
+        20.00) {
       // mineral_loc_b is further from previous minerals by a factor of 10
       return mineral_loc_b;
     }
