@@ -35,6 +35,7 @@ private:
   bool isArmyReady();
   void launchAttack(const Point2D &);
   Point2D getMapCenter() const;
+  Point2D getDirectionVector(Point2D, Point2D);
   const Unit *findNextNearestMineralGroup(const Unit *);
   BuildQueue build_order; // Queue that holds BuildOrderItems
   std::vector<Point2D>

@@ -411,7 +411,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     // if its a hatchery we get the nearest mineral location that we havent
     // visited
     case UNIT_TYPEID::ZERG_HATCHERY: {
-      // TODO track if a mineral 'group' has been built near already
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 300) {
         std::cout << "building hatchery..." << std::endl;
@@ -427,20 +426,14 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                   << std::endl;
         // get vector from cluster center to map center, normalize into a
         // direction vector
-        Point2D direction_vector(map_center.x - mineral_cluster_b->pos.x,
-                                 map_center.y - mineral_cluster_b->pos.y);
-        double direction_vector_magnitude =
-            1.00f / sqrt(direction_vector.x * direction_vector.x +
-                         direction_vector.y * direction_vector.y);
-        Point2D normalized_direction_vector(
-            direction_vector_magnitude * direction_vector.x,
-            direction_vector_magnitude * direction_vector.y);
+        Point2D direction_vector(
+            getDirectionVector(mineral_cluster_b->pos, map_center));
         // create point for hatchery
-        std::cout << "direction vector: " << normalized_direction_vector.x
-                  << " , " << normalized_direction_vector.y << std::endl;
+        std::cout << "direction vector: " << direction_vector.x << " , "
+                  << direction_vector.y << std::endl;
         Point2D hatchery_location(
-            mineral_cluster_b->pos.x + (normalized_direction_vector.x * 10.0f),
-            mineral_cluster_b->pos.y + (normalized_direction_vector.y * 10.0f));
+            mineral_cluster_b->pos.x + (direction_vector.x * 10.0f),
+            mineral_cluster_b->pos.y + (direction_vector.y * 10.0f));
         std::cout << "calculated hatchery point: " << hatchery_location.x
                   << " , " << hatchery_location.y << std::endl;
         // find build position
@@ -546,6 +539,10 @@ Point2D BasicSc2Bot::getMapCenter() const {
 
 const Unit *
 BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
+  /**
+   * finds and returns a mineral patch in the next nearest group of mineral
+   * patches
+   */
   const Unit *mineral_loc_b = FindNearestMineralPatch(mineral_loc_a->pos);
   for (int i = 0; i < 10; i++) {
     // calculate absolute difference between points:
@@ -565,4 +562,18 @@ BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
   }
   return mineral_loc_b; // in case of next group not found within 10 minerals,
                         // return 10th mineral patch
+}
+Point2D getDirectionVector(Point2D vec_a, Point2D vec_b) {
+  /**
+   * calculates and returns the direction vector of the line from point a to
+   * point b
+   */
+  Point2D direction_vector(vec_b.x - vec_a.x, vec_b.y - vec_a.y);
+  double direction_vector_magnitude =
+      1.00f / sqrt(direction_vector.x * direction_vector.x +
+                   direction_vector.y * direction_vector.y);
+  Point2D normalized_direction_vector(
+      direction_vector_magnitude * direction_vector.x,
+      direction_vector_magnitude * direction_vector.y);
+  return normalized_direction_vector;
 }
