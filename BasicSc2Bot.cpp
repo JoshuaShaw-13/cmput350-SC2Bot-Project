@@ -411,71 +411,24 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     // if its a hatchery we get the nearest mineral location that we havent
     // visited
     case UNIT_TYPEID::ZERG_HATCHERY: {
+      // TODO track if a mineral 'group' has been built near already
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 300) {
         std::cout << "building hatchery..." << std::endl;
-        // find "drop-off" point in mineral location differences to find next
-        // group of mineral patches
-        const Unit *mineral_loc_a = FindNearestMineralPatch(drone->pos);
-        const Unit *mineral_loc_b = FindNearestMineralPatch(mineral_loc_a->pos);
-        for (int i = 0; i < 10; i++) {
-          // calculate absolute difference between points:
-          Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.x,
-                                    mineral_loc_a->pos.y -
-                                        mineral_loc_b->pos.y);
-          double difference_magnitude =
-              sqrt(difference_vector.x * difference_vector.x +
-                   difference_vector.y * difference_vector.y);
-          // compare differences
-          if (difference_magnitude > 10.00) {
-            // mineral_loc_b is further from previous minerals by a factor of 10
-            break;
-          }
-          // otherwise: shift mineral pair
-          mineral_loc_a = mineral_loc_b;
-          mineral_loc_b = FindNearestMineralPatch(mineral_loc_b->pos);
-        }
-        const Unit *mineral_cluster_a =
-            mineral_loc_b; // location of a point in the next nearest cluster of
-                           // mineral patches
-        // find the furthest mineral patch from mineral_cluster_a, that exists
-        // within the same mineral cluster:
-        for (int i = 0; i < 10; i++) {
-          mineral_loc_a = mineral_loc_b;
-          mineral_loc_b = FindNearestMineralPatch(mineral_loc_b->pos);
-          // calculate absolute difference between points:
-          Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.x,
-                                    mineral_loc_a->pos.y -
-                                        mineral_loc_b->pos.y);
-          double difference_magnitude =
-              sqrt(difference_vector.x * difference_vector.x +
-                   difference_vector.y * difference_vector.y);
-          // compare differences
-          if (difference_magnitude > 10.00) {
-            // mineral_loc_b is further from previous minerals by a factor of 10
-            break;
-          }
-        }
-        const Unit *mineral_cluster_b = mineral_loc_a;
-        // calculate center point between mineral_clusters_a and
-        // mineral_cluster_b:
-        Point2D cluster_center(
-            (mineral_cluster_a->pos.x + mineral_cluster_b->pos.x) / 2,
-            (mineral_cluster_a->pos.y + mineral_cluster_b->pos.y) / 2);
-        std::cout << "cluster point a: " << mineral_cluster_a->pos.x << " , "
-                  << mineral_cluster_a->pos.y << std::endl;
-        std::cout << "cluster point b: " << mineral_cluster_b->pos.x << " , "
-                  << mineral_cluster_b->pos.y << std::endl;
-        std::cout << "cluster center: " << cluster_center.x << " , "
-                  << cluster_center.y << std::endl;
+        // locate the next nearest mineral group
+        const Unit *mineral_cluster_a = FindNearestMineralPatch(drone->pos);
+        const Unit *mineral_cluster_b =
+            findNextNearestMineralGroup(mineral_cluster_a);
+        std::cout << "located mineral cluster: " << mineral_cluster_b->pos.x
+                  << " , " << mineral_cluster_b->pos.y << std::endl;
         // get map center
         Point2D map_center = getMapCenter();
         std::cout << "map center: " << map_center.x << " , " << map_center.y
                   << std::endl;
         // get vector from cluster center to map center, normalize into a
         // direction vector
-        Point2D direction_vector(map_center.x - cluster_center.x,
-                                 map_center.y - cluster_center.y);
+        Point2D direction_vector(map_center.x - mineral_cluster_b->pos.x,
+                                 map_center.y - mineral_cluster_b->pos.y);
         double direction_vector_magnitude =
             1.00f / sqrt(direction_vector.x * direction_vector.x +
                          direction_vector.y * direction_vector.y);
@@ -486,8 +439,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         std::cout << "direction vector: " << normalized_direction_vector.x
                   << " , " << normalized_direction_vector.y << std::endl;
         Point2D hatchery_location(
-            cluster_center.x + (normalized_direction_vector.x * 10.0f),
-            cluster_center.y + (normalized_direction_vector.y * 10.0f));
+            mineral_cluster_b->pos.x + (normalized_direction_vector.x * 10.0f),
+            mineral_cluster_b->pos.y + (normalized_direction_vector.y * 10.0f));
         std::cout << "calculated hatchery point: " << hatchery_location.x
                   << " , " << hatchery_location.y << std::endl;
         // find build position
@@ -504,6 +457,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       }
       break;
     }
+
     case UNIT_TYPEID::ZERG_EXTRACTOR: {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 25) {
@@ -588,4 +542,24 @@ Point2D BasicSc2Bot::getMapCenter() const {
   float center_y = (playable_min.y + playable_max.y) / 2.0f;
 
   return sc2::Point2D(center_x, center_y);
+}
+
+const Unit *
+BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
+  const Unit *mineral_loc_b = FindNearestMineralPatch(mineral_loc_a->pos);
+  for (int i = 0; i < 10; i++) {
+    // calculate absolute difference between points:
+    Point2D difference_vector(mineral_loc_a->pos.x - mineral_loc_b->pos.x,
+                              mineral_loc_a->pos.y - mineral_loc_b->pos.y);
+    double difference_magnitude =
+        sqrt(difference_vector.x * difference_vector.x +
+             difference_vector.y * difference_vector.y);
+    // compare differences
+    if (difference_magnitude > 10.00) {
+      // mineral_loc_b is further from previous minerals by a factor of 10
+      return mineral_loc_b;
+    }
+  }
+  return mineral_loc_b; // in case of next group not found within 10 minerals,
+                        // return 10th mineral patch
 }

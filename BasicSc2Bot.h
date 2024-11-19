@@ -13,7 +13,6 @@
 #include <set>
 #include <vector>
 
-
 using namespace sc2;
 
 class BasicSc2Bot : public Agent {
@@ -36,6 +35,7 @@ private:
   bool isArmyReady();
   void launchAttack(const Point2D &);
   Point2D getMapCenter() const;
+  const Unit *findNextNearestMineralGroup(const Unit *);
   BuildQueue build_order; // Queue that holds BuildOrderItems
   std::vector<Point2D>
       scout_locations; // Vector containing locations we need to scout
