@@ -563,7 +563,12 @@ BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
   return mineral_loc_b; // in case of next group not found within 10 minerals,
                         // return 10th mineral patch
 }
-Point2D getDirectionVector(Point2D vec_a, Point2D vec_b) {
+double BasicSc2Bot::getVectorDifferenceMagnitude(Point2D vec_a, Point2D vec_b) {
+  /**
+   * calculates and returns the magnitude of the difference between two points
+   */
+}
+Point2D BasicSc2Bot::getDirectionVector(Point2D vec_a, Point2D vec_b) {
   /**
    * calculates and returns the direction vector of the line from point a to
    * point b
