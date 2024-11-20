@@ -2,6 +2,7 @@
 #define BASIC_SC2_BOT_H_
 
 #include "AttackBaseQueue.h"
+#include "BuildQueue.h" #include "AttackBaseQueue.h"
 #include "BuildQueue.h"
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_args.h"
@@ -25,6 +26,10 @@ public:
 private:
   const Unit *FindNearestMineralPatch(const Point2D &);
   const Unit *FindNearestVespenePatch(const Point2D &);
+  const Point2D getValidRallyPoint(const Point2D &base_position,
+                                   QueryInterface *query,
+                                   float max_radius = 15.0f, float step = 2.0f);
+  Point2D FindPlacementLocation(AbilityID ability, const Point2D &near_point);
   const Unit *findIdleLarva();
   const Unit *findIdleDrone();
   const Unit *findAvailableDrone();
@@ -33,6 +38,7 @@ private:
   Point2D findBuildPosition(const Point2D &);
   bool tryBuild(struct BuildOrderItem);
   bool isArmyReady();
+  bool inRallyRange(const Point2D &, const Point2D &, float);
   void launchAttack(const Point2D &);
   Point2D getMapCenter() const;
   Point2D getDirectionVector(const Point2D, const Point2D);

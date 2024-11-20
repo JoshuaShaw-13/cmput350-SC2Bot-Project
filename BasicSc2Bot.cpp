@@ -8,6 +8,7 @@
 #include <sc2api/sc2_typeenums.h>
 #include <sc2api/sc2_unit.h>
 #include <sc2api/sc2_unit_filters.h>
+#define M_PI 3.14
 
 using namespace sc2;
 
@@ -51,6 +52,26 @@ void BasicSc2Bot::OnGameStart() {
   build_order.push(BuildOrderItem(
       0, UNIT_TYPEID::ZERG_SPORECRAWLER)); // Build 2 Spore Crawlers
   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_SPORECRAWLER));
+  state.rally_point =
+      getValidRallyPoint(observation->GetStartLocation(), Query());
+
+  // find overlord rally location depending on base start location
+  const Unit *start_base =
+      observation
+          ->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))
+          .front();
+  Point2D start_location = start_base->pos;
+  int map_width = observation->GetGameInfo().width;
+  int map_height = observation->GetGameInfo().height;
+  std::cout << map_width << " " << map_height;
+  int x_half = map_width / 2;
+  int y_half = map_height / 2;
+  if (start_location.x > x_half) {
+    state.overlord_rally_point.x = map_width - 1;
+  }
+  if (start_location.y > y_half) {
+    state.overlord_rally_point.y = map_height - 1;
+  }
 
   // Send the first Overlord to scout one of the scout_locations and remove it
   // from further scouting consideration
@@ -133,20 +154,44 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_OVERLORD: {
-    if (state.scouts.size() < 1) {
+    std::cout << "  " << unit->pos.x << "," << unit->pos.y << ", "
+              << inRallyRange(unit->pos, state.overlord_rally_point, 25.0);
+    if (state.scouts.front() == unit && scout_locations.size() > 0) {
       Actions()->UnitCommand(unit, ABILITY_ID::SMART, scout_locations.front());
       scout_locations.erase(scout_locations.begin());
       state.scouts.push_back(unit);
-    } else {
+    } else if (!inRallyRange(unit->pos, state.overlord_rally_point, 25.0)) {
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
                              state.overlord_rally_point);
     }
     break;
   }
+
   case UNIT_TYPEID::ZERG_QUEEN: {
-    Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA);
+    Units hatcheries =
+        Observation()->GetUnits(Unit::Alliance::Self, IsTownHall());
+    if (!hatcheries.empty()) {
+      // Find the closest Hatchery to the Queen
+      const Unit *closest_hatchery = nullptr;
+      float min_distance = std::numeric_limits<float>::max();
+      for (const auto &hatchery : hatcheries) {
+        if (hatchery->build_progress == 1.0f) {
+          float distance = DistanceSquared2D(unit->pos, hatchery->pos);
+          if (distance < min_distance) {
+            min_distance = distance;
+            closest_hatchery = hatchery;
+            min_distance = distance;
+          }
+        }
+      }
+      if (closest_hatchery) {
+        Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_INJECTLARVA,
+                               closest_hatchery);
+      }
+    }
     break;
   }
+
   case UNIT_TYPEID::ZERG_ZERGLING: {
     Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
     break;
@@ -195,7 +240,27 @@ const Unit *BasicSc2Bot::FindNearestVespenePatch(const Point2D &start) {
   vespene_locations.insert(target);
   return target;
 }
+const Point2D BasicSc2Bot::getValidRallyPoint(const Point2D &base_position,
+                                              QueryInterface *query,
+                                              float max_radius, float step) {
+  // Spiral pattern starting from the base position
+  for (float radius = step; radius <= max_radius; radius += step) {
+    for (float angle = 0.0f; angle < 360.0f;
+         angle += 45.0f) { // Check 8 directions in each radius
+      float radians = angle * M_PI / 180.0f;
+      Point2D potential_point =
+          Point2D(base_position.x + radius * std::cos(radians),
+                  base_position.y + radius * std::sin(radians));
 
+      // Check if the point is valid for placement
+      if (query->Placement(ABILITY_ID::RALLY_UNITS, potential_point)) {
+        return potential_point; // Return the first valid point
+      }
+    }
+  }
+  // If no valid point is found, fallback to the base position
+  return base_position;
+}
 const Unit *BasicSc2Bot::findAvailableDrone() {
   Units drones = Observation()->GetUnits(Unit::Alliance::Self,
                                          IsUnit(UNIT_TYPEID::ZERG_DRONE));
@@ -313,6 +378,7 @@ Point2D BasicSc2Bot::findBuildPosition(const Point2D &start) {
       }
     }
   }
+  return Point2D(0, 0);
 }
 const Unit *BasicSc2Bot::findIdleLarva() {
   for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
@@ -499,10 +565,10 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
 }
 
 bool BasicSc2Bot::isArmyReady() {
-  int roach_count;
-  int zergling_count;
+  int roach_count = 0;
+  int zergling_count = 0;
   const int optRoach = 0;
-  const int optZergling = 4;
+  const int optZergling = 8;
   for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
     if (unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
       roach_count++;
@@ -581,4 +647,30 @@ Point2D BasicSc2Bot::getDirectionVector(Point2D vec_a, Point2D vec_b) {
       direction_vector_magnitude * direction_vector.x,
       direction_vector_magnitude * direction_vector.y);
   return normalized_direction_vector;
+}
+
+bool BasicSc2Bot::inRallyRange(const Point2D &pos, const Point2D &rally,
+                               float range) {
+  std::cout << "     pos.x: " << pos.x << "pos.y: " << pos.y
+            << "rally.x: " << rally.x << "rally.y: " << rally.y << "     ";
+  if (abs(pos.x - rally.x) < range && abs(pos.y - rally.y) < range) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability,
+                                           const Point2D &near_point) {
+  // Try random points around the near_point
+  for (int i = 0; i < 20; ++i) { // Increased iterations for better chances
+    float rx = GetRandomScalar() * 10.0f - 5.0f; // Center around near_point
+    float ry = GetRandomScalar() * 10.0f - 5.0f;
+    Point2D test_point = near_point + Point2D(rx, ry);
+
+    // Check if the position is valid for building
+    if (Query()->Placement(ability, test_point)) {
+      return test_point;
+    }
+  }
 }
