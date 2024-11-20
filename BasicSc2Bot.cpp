@@ -1,5 +1,6 @@
 #include "BasicSc2Bot.h"
 #include "GameManager.h"
+#include <cmath>
 #include <iostream>
 #include <ostream>
 #include <sc2api/sc2_agent.h>
@@ -430,6 +431,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         return true;
       }
       break;
+
     case UNIT_TYPEID::ZERG_ROACH:
       larva = findIdleLarva();
       if (larva && observation->GetMinerals() >= 75 &&
@@ -488,20 +490,42 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     case UNIT_TYPEID::ZERG_HATCHERY: {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 300) {
-        float rx = GetRandomScalar();
-        float ry = GetRandomScalar();
-        const Unit *nearest_new_mineral_loc =
-            FindNearestMineralPatch(drone->pos);
+        std::cout << "building hatchery..." << std::endl;
+        // locate the next nearest mineral group
+        const Unit *mineral_cluster_a = FindNearestMineralPatch(drone->pos);
+        const Unit *mineral_cluster_b =
+            findNextNearestMineralGroup(mineral_cluster_a);
+        std::cout << "located mineral cluster: " << mineral_cluster_b->pos.x
+                  << " , " << mineral_cluster_b->pos.y << std::endl;
+        // get map center
+        Point2D map_center = getMapCenter();
+        // get vector from cluster center to map center, normalize into a
+        // direction vector
+        Point2D direction_vector(
+            getDirectionVector(mineral_cluster_b->pos, map_center));
+        // create point for hatchery
+        std::cout << "direction vector: " << direction_vector.x << " , "
+                  << direction_vector.y << std::endl;
+        Point2D hatchery_location(
+            mineral_cluster_b->pos.x + (direction_vector.x * 15.0f),
+            mineral_cluster_b->pos.y + (direction_vector.y * 15.0f));
+        std::cout << "calculated hatchery point: " << hatchery_location.x
+                  << " , " << hatchery_location.y << std::endl;
+        // find build position
         Point2D build_position =
-            findBuildPositionNearMineral(nearest_new_mineral_loc->pos);
+            findBuildPositionNearMineral(hatchery_location);
+        std::cout << "build position: " << build_position.x << " , "
+                  << build_position.y << std::endl;
         if (build_position.x != 0.0f || build_position.y != 0.0f) {
           Actions()->UnitCommand(drone, ABILITY_ID::BUILD_HATCHERY,
                                  build_position);
+          std::cout << "hatchery built." << std::endl;
           return true;
         }
       }
       break;
     }
+
     case UNIT_TYPEID::ZERG_EXTRACTOR: {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 25) {
@@ -602,6 +626,67 @@ void BasicSc2Bot::launchAttack(const Point2D &target) {
       launching_attack = true;
     }
   }
+}
+// Function to calculate the center of the map
+Point2D BasicSc2Bot::getMapCenter() const {
+  // Get the playable map area
+  const sc2::GameInfo &game_info = Observation()->GetGameInfo();
+  sc2::Point2D playable_min = game_info.playable_min;
+  sc2::Point2D playable_max = game_info.playable_max;
+
+  // Calculate the center point
+  float center_x = (playable_min.x + playable_max.x) / 2.0f;
+  float center_y = (playable_min.y + playable_max.y) / 2.0f;
+
+  return sc2::Point2D(center_x, center_y);
+}
+
+const Unit *
+BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
+  /**
+   * finds and returns a mineral patch in the next nearest group of mineral
+   * patches
+   */
+  const Unit *mineral_loc_b = FindNearestMineralPatch(mineral_loc_a->pos);
+  std::cout << "differences: ";
+  for (int i = 0; i < 10; i++) {
+    // compare differences
+    if (getVectorDifferenceMagnitude(mineral_loc_a->pos, mineral_loc_b->pos) >
+        20.00) {
+      // mineral_loc_b is further from previous minerals by a factor of 10
+      return mineral_loc_b;
+    }
+    // get next mineral pairs
+    mineral_loc_a = mineral_loc_b;
+    mineral_loc_b = FindNearestVespenePatch(mineral_loc_b->pos);
+  }
+  std::cout << std::endl;
+  return mineral_loc_b; // in case of next group not found within 10 minerals,
+                        // return 10th mineral patch
+}
+double BasicSc2Bot::getVectorDifferenceMagnitude(Point2D vec_a, Point2D vec_b) {
+  /**
+   * calculates and returns the magnitude of the difference between two points
+   */
+  Point2D difference_vector(vec_a.x - vec_b.x, vec_a.y - vec_b.y);
+  double diff = sqrt(difference_vector.x * difference_vector.x +
+                     difference_vector.y * difference_vector.y);
+  std::cout << diff << ", ";
+  return diff;
+}
+Point2D BasicSc2Bot::getDirectionVector(Point2D vec_a, Point2D vec_b) {
+  /**
+   * calculates and returns the direction vector of the line from point a to
+   * point b
+   */
+  Point2D direction_vector(vec_b.x - vec_a.x, vec_b.y - vec_a.y);
+  double direction_vector_magnitude =
+      1.00f / sqrt(direction_vector.x * direction_vector.x +
+                   direction_vector.y * direction_vector.y);
+  Point2D normalized_direction_vector(
+      direction_vector_magnitude * direction_vector.x,
+      direction_vector_magnitude * direction_vector.y);
+  return normalized_direction_vector;
 }
 
 bool BasicSc2Bot::inRallyRange(const Point2D &pos, const Point2D &rally,

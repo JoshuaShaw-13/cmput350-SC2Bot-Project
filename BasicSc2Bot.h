@@ -2,6 +2,7 @@
 #define BASIC_SC2_BOT_H_
 
 #include "AttackBaseQueue.h"
+#include "BuildQueue.h" #include "AttackBaseQueue.h"
 #include "BuildQueue.h"
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_args.h"
@@ -12,7 +13,6 @@
 #include <sc2api/sc2_unit_filters.h>
 #include <set>
 #include <vector>
-
 
 using namespace sc2;
 
@@ -40,6 +40,10 @@ private:
   bool isArmyReady();
   bool inRallyRange(const Point2D &, const Point2D &, float);
   void launchAttack(const Point2D &);
+  Point2D getMapCenter() const;
+  Point2D getDirectionVector(const Point2D, const Point2D);
+  double getVectorDifferenceMagnitude(const Point2D, const Point2D);
+  const Unit *findNextNearestMineralGroup(const Unit *);
   BuildQueue build_order; // Queue that holds BuildOrderItems
   std::vector<Point2D>
       scout_locations; // Vector containing locations we need to scout
