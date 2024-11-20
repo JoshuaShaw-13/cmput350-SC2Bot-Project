@@ -156,10 +156,9 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   case UNIT_TYPEID::ZERG_OVERLORD: {
     std::cout << "  " << unit->pos.x << "," << unit->pos.y << ", "
               << inRallyRange(unit->pos, state.overlord_rally_point, 25.0);
-    if (state.scouts.front() == unit && scout_locations.size() > 0) {
+    if (scout_locations.size() > 0) {
       Actions()->UnitCommand(unit, ABILITY_ID::SMART, scout_locations.front());
       scout_locations.erase(scout_locations.begin());
-      state.scouts.push_back(unit);
     } else if (!inRallyRange(unit->pos, state.overlord_rally_point, 25.0)) {
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
                              state.overlord_rally_point);
@@ -421,6 +420,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         return true;
       }
       break;
+
     case UNIT_TYPEID::ZERG_ROACH:
       larva = findIdleLarva();
       if (larva && observation->GetMinerals() >= 75 &&
