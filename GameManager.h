@@ -1,8 +1,10 @@
 #ifndef GAME_MANAGER_
 #define GAME_MANAGER_
 
+#include <algorithm>
 #include <sc2api/sc2_unit_filters.h>
 #include <vector>
+
 
 using namespace sc2;
 // enum for current policy (saving?, building?, rushing?)
