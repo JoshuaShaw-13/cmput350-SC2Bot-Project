@@ -20,8 +20,9 @@ class BasicSc2Bot : public Agent {
 public:
   virtual void OnGameStart();
   virtual void OnStep();
-
   virtual void OnUnitIdle(const Unit *unit) final;
+  virtual void OnBuildingConstructionComplete(const sc2::Unit* unit);
+  virtual void BasicSc2Bot::OnUnitDestroyed(const Unit* unit);
 
 private:
   const Unit *FindNearestMineralPatch(const Point2D &);
@@ -36,6 +37,8 @@ private:
   const Unit *findAvailableLarva();
   Point2D findBuildPositionNearMineral(const Point2D &);
   Point2D findBuildPosition(const Point2D &);
+  void HandleQueenInjects();
+  void AssignDronesToExtractor(const Unit* extractor);
   bool tryBuild(struct BuildOrderItem);
   bool isArmyReady();
   bool inRallyRange(const Point2D &, const Point2D &, float);
@@ -49,6 +52,8 @@ private:
       scout_locations; // Vector containing locations we need to scout
   std::set<const Unit *> mineral_locations;
   std::set<const Unit *> vespene_locations;
+  std::set<Tag> gas_harvesting_drones;
+  Tag initial_hatchery_tag; // Add this line
   bool launching_attack = false;
   AttackBaseQueue
       enemy_bases; // Queue containing locations we identify as enemy bases
