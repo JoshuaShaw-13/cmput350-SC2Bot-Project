@@ -126,12 +126,16 @@ void BasicSc2Bot::OnStep() {
 
   // check if we have enough resources to expand to a new base
   //  this would be in the manager
-
+  if (state.enemyBaseLocations.size() > 0) {
+    std::cout << "Enemy base location: (" << state.enemyBaseLocations.at(0)->pos.x << ", " << state.enemyBaseLocations.at(0)->pos.y << std::endl;
+  }
   // Attack once we have an optimal army build
   // use the attack base queue
-  if (isArmyReady() && !launching_attack) {
-    if (!enemy_bases.isEmpty()) {
-      launchAttack(enemy_bases.peek()->loc);
+  if (isArmyReady()) {
+    std::cout << "Army ready!" << std::endl;
+    if (state.enemyBaseLocations.size() > 0) {
+      std::cout << "Base found: Attacking enemy!!" << std::endl;
+      launchAttack(state.enemyBaseLocations.at(0)->pos);
     }
   }
 
@@ -658,10 +662,10 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
 }
 
 bool BasicSc2Bot::isArmyReady() {
-  int roach_count;
-  int zergling_count;
-  const int optRoach = 1;
-  const int optZergling = 8;
+  int roach_count = 0;
+  int zergling_count = 0;
+  const int optRoach = 1; // -r x
+  const int optZergling = 4; // -z x
   for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
     if (unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
       roach_count++;
@@ -676,7 +680,6 @@ void BasicSc2Bot::launchAttack(const Point2D &target) {
     if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING ||
         unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
       Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target);
-      launching_attack = true;
     }
   }
 }

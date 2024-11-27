@@ -55,7 +55,6 @@ private:
   std::set<const Unit *> vespene_locations;
   std::set<Tag> gas_harvesting_drones;
   Tag initial_hatchery_tag; // Add this line
-  bool launching_attack = false;
   AttackBaseQueue
       enemy_bases; // Queue containing locations we identify as enemy bases
 };
