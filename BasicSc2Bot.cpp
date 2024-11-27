@@ -17,6 +17,11 @@ GameManager state;
 
 void BasicSc2Bot::OnGameStart() {
   const ObservationInterface *observation = Observation();
+  const Unit *start_base =
+      observation
+          ->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))
+          .front();
+  initial_hatchery_tag = start_base->tag;
   scout_locations = observation->GetGameInfo().enemy_start_locations;
 
   // Build drones if not at the given army cap for next item
@@ -54,11 +59,9 @@ void BasicSc2Bot::OnGameStart() {
       0, UNIT_TYPEID::ZERG_SPORECRAWLER)); // Build 2 Spore Crawlers
   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_SPORECRAWLER));
 
+  state.rally_point = getValidRallyPoint(observation->GetStartLocation(), Query());
+
   // find overlord rally location depending on base start location
-  const Unit *start_base =
-      observation
-          ->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))
-          .front();
   Point2D start_location = start_base->pos;
   int map_width = observation->GetGameInfo().width;
   int map_height = observation->GetGameInfo().height;
@@ -123,14 +126,21 @@ void BasicSc2Bot::OnStep() {
 
   // check if we have enough resources to expand to a new base
   //  this would be in the manager
-
+  if (state.enemyBaseLocations.size() > 0) {
+    std::cout << "Enemy base location: (" << state.enemyBaseLocations.at(0)->pos.x << ", " << state.enemyBaseLocations.at(0)->pos.y << std::endl;
+  }
   // Attack once we have an optimal army build
   // use the attack base queue
-  if (isArmyReady() && !launching_attack) {
-    if (!enemy_bases.isEmpty()) {
-      launchAttack(enemy_bases.peek()->loc);
+  if (isArmyReady()) {
+    std::cout << "Army ready!" << std::endl;
+    if (state.enemyBaseLocations.size() > 0) {
+      std::cout << "Base found: Attacking enemy!!" << std::endl;
+      launchAttack(state.enemyBaseLocations.at(0)->pos);
     }
   }
+
+  // Queen inject on step since they don't revert back to idle after injecting initially.
+  HandleQueenInjects();
 
   return;
 }
@@ -139,6 +149,7 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   state.idleUnits.push_back(unit);
   switch (unit->unit_type.ToType()) {
   case UNIT_TYPEID::ZERG_DRONE: {
+    gas_harvesting_drones.erase(unit->tag);
     Units extractors = Observation()->GetUnits(
         Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_EXTRACTOR));
     const Unit *extractor_to_mine = nullptr;
@@ -188,7 +199,6 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
           if (distance < min_distance) {
             min_distance = distance;
             closest_hatchery = hatchery;
-            min_distance = distance;
           }
         }
       }
@@ -214,6 +224,39 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   }
 }
 
+void BasicSc2Bot::OnBuildingConstructionComplete(const Unit* unit) {
+  // If the unit that finished constructing is an Extractor, assign 3 drones to the extractor.
+  if (unit->unit_type == UNIT_TYPEID::ZERG_EXTRACTOR) {
+    AssignDronesToExtractor(unit);
+  }
+}
+
+void BasicSc2Bot::OnUnitDestroyed(const Unit* unit) {
+    if (unit->unit_type == UNIT_TYPEID::ZERG_DRONE) {
+      gas_harvesting_drones.erase(unit->tag);
+    } else if (unit->unit_type == UNIT_TYPEID::ZERG_OVERLORD) {
+      build_order.push_front(BuildOrderItem(0, UNIT_TYPEID::ZERG_OVERLORD));
+    }
+}
+const Point2D BasicSc2Bot::getValidRallyPoint(const Point2D& base_position, QueryInterface* query, float max_radius, float step) {
+    // Spiral pattern starting from the base position
+    for (float radius = step; radius <= max_radius; radius += step) {
+        for (float angle = 0.0f; angle < 360.0f; angle += 45.0f) {  // Check 8 directions in each radius
+            float radians = angle * M_PI / 180.0f;
+            Point2D potential_point = Point2D(
+                base_position.x + radius * std::cos(radians),
+                base_position.y + radius * std::sin(radians)
+            );
+            // Check if the point is valid for placement
+            if (query->Placement(ABILITY_ID::RALLY_UNITS, potential_point)) {
+                return potential_point;  // Return the first valid point
+            }
+        }
+    }
+    // If no valid point is found, fallback to the base position
+    return base_position;
+}
+
 const Unit *BasicSc2Bot::FindNearestMineralPatch(const Point2D &start) {
   Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
   float distance = std::numeric_limits<float>::max();
@@ -231,43 +274,62 @@ const Unit *BasicSc2Bot::FindNearestMineralPatch(const Point2D &start) {
   mineral_locations.insert(target);
   return target;
 }
-const Unit *BasicSc2Bot::FindNearestVespenePatch(const Point2D &start) {
-  Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
-  float distance = std::numeric_limits<float>::max();
-  const Unit *target = nullptr;
-  for (const auto &u : units) {
-    if (u->unit_type == UNIT_TYPEID::NEUTRAL_VESPENEGEYSER &&
-        vespene_locations.find(u) == vespene_locations.end()) {
-      float d = DistanceSquared2D(u->pos, start);
-      if (d < distance) {
-        distance = d;
-        target = u;
-      }
+
+struct IsVespeneGeyser {
+    bool operator()(const Unit& unit) {
+        return unit.unit_type == UNIT_TYPEID::NEUTRAL_VESPENEGEYSER ||
+               unit.unit_type == UNIT_TYPEID::NEUTRAL_SPACEPLATFORMGEYSER ||
+               unit.unit_type == UNIT_TYPEID::NEUTRAL_PROTOSSVESPENEGEYSER ||
+               unit.unit_type == UNIT_TYPEID::NEUTRAL_PURIFIERVESPENEGEYSER ||
+               unit.unit_type == UNIT_TYPEID::NEUTRAL_SHAKURASVESPENEGEYSER ||
+               unit.unit_type == UNIT_TYPEID::NEUTRAL_RICHVESPENEGEYSER;
     }
-  }
-  vespene_locations.insert(target);
-  return target;
+};
+
+const Unit *BasicSc2Bot::FindNearestVespenePatch(const Point2D &start) {
+  Units geysers = Observation()->GetUnits(Unit::Alliance::Neutral, IsVespeneGeyser());
+    float distance = std::numeric_limits<float>::max();
+    const Unit *target = nullptr;
+    for (const auto &geyser : geysers) {
+        // Check if the geyser already has an Extractor built on it
+        bool has_extractor = false;
+        for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
+            if (unit->unit_type == UNIT_TYPEID::ZERG_EXTRACTOR &&
+                DistanceSquared2D(unit->pos, geyser->pos) < 1.0f) {
+                has_extractor = true;
+                break;
+            }
+        }
+        if (!has_extractor) {
+            float d = DistanceSquared2D(geyser->pos, start);
+            if (d < distance) {
+                distance = d;
+                target = geyser;
+            }
+        }
+    }
+    return target;
 }
 
 const Unit *BasicSc2Bot::findAvailableDrone() {
   Units drones = Observation()->GetUnits(Unit::Alliance::Self,
                                          IsUnit(UNIT_TYPEID::ZERG_DRONE));
 
-  // Prioritize idle Drones
   for (const auto &drone : drones) {
-    if (drone->orders.empty()) {
-      return drone;
+    // Skip gas harvesting drones
+    if (gas_harvesting_drones.find(drone->tag) != gas_harvesting_drones.end()) {
+        continue;
     }
-  }
-
-  // If no idle Drones, find one that's harvesting minerals
-  for (const auto &drone : drones) {
-    if (!drone->orders.empty()) {
-      AbilityID current_ability = drone->orders.front().ability_id;
-      if (current_ability == ABILITY_ID::HARVEST_GATHER ||
-          current_ability == ABILITY_ID::HARVEST_RETURN) {
+    // Prioritize idle drones
+    if (drone->orders.empty()) {
         return drone;
-      }
+    }
+    // Secondary, get a drone that is harvesting minerals.
+    for (const auto &order : drone->orders) {
+        if (order.ability_id == ABILITY_ID::HARVEST_GATHER ||
+            order.ability_id == ABILITY_ID::HARVEST_RETURN) {
+            return drone;
+        }
     }
   }
 
@@ -391,25 +453,20 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
 
   // Check if the item is a MORPH_LAIR upgrade to handle separately.
   if (buildItem.ability == ABILITY_ID::MORPH_LAIR) {
-    Units hatcheries = observation->GetUnits(
-        Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
-    for (const auto &hatchery : hatcheries) {
-      // Ensure the Hatchery is completed and idle
-      if (hatchery->build_progress == 1.0f && hatchery->orders.empty()) {
-        // Check for resources
-        if (observation->GetMinerals() >= 150 &&
-            observation->GetVespene() >= 100) {
-          Actions()->UnitCommand(hatchery, ABILITY_ID::MORPH_LAIR);
-          std::cout << "Upgrading Hatchery to Lair." << std::endl;
-          return true;
+    const Unit* initial_hatchery = observation->GetUnit(initial_hatchery_tag);
+    if (initial_hatchery && initial_hatchery->build_progress == 1.0f && initial_hatchery->orders.empty()) {
+        if (observation->GetMinerals() >= 150 && observation->GetVespene() >= 100) {
+            Actions()->UnitCommand(initial_hatchery, ABILITY_ID::MORPH_LAIR);
+            std::cout << "Upgrading initial hatchery to Lair." << std::endl;
+            return true;
         } else {
-          std::cout << "Insufficient resources to morph Lair." << std::endl;
+            std::cout << "Insufficient resources to morph Lair." << std::endl;
         }
-      }
+    } else {
+        std::cout << "Initial hatchery not ready for Lair upgrade." << std::endl;
     }
-    std::cout << "No available Hatchery for Lair upgrade." << std::endl;
     return false;
-  }
+}
 
   // if its a unit build it if we can afford
   if (buildItem.is_unit) {
@@ -477,7 +534,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       }
       for (const auto &hatchery : observation->GetUnits(
                Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))) {
-        if (hatchery->orders.empty() && observation->GetMinerals() >= 150) {
+        if (hatchery ->build_progress == 1.0f && hatchery->orders.empty() && observation->GetMinerals() >= 150) {
           Actions()->UnitCommand(hatchery, ABILITY_ID::TRAIN_QUEEN);
           return true;
         }
@@ -593,7 +650,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     return false;
   }
   // must be an upgrade
-  if (buildItem.ability != ABILITY_ID::INVALID) {
+  if (buildItem.ability != ABILITY_ID::INVALID && !buildItem.is_unit) {
     Units structures = observation->GetUnits(Unit::Alliance::Self,
                                              IsUnit(buildItem.unit_type));
     if (!structures.empty()) {
@@ -605,10 +662,10 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
 }
 
 bool BasicSc2Bot::isArmyReady() {
-  int roach_count;
-  int zergling_count;
-  const int optRoach = 0;
-  const int optZergling = 4;
+  int roach_count = 0;
+  int zergling_count = 0;
+  const int optRoach = 1; // -r x
+  const int optZergling = 4; // -z x
   for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
     if (unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
       roach_count++;
@@ -623,7 +680,6 @@ void BasicSc2Bot::launchAttack(const Point2D &target) {
     if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING ||
         unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
       Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target);
-      launching_attack = true;
     }
   }
 }
@@ -716,4 +772,72 @@ Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability,
   }
   // No valid position found
   return Point2D(0.0f, 0.0f); // Indicates failure
+}
+
+// To be called onStep() to make sure queens are injecting as soon as they can
+void BasicSc2Bot::HandleQueenInjects() {
+  const ObservationInterface *observation = Observation();
+  Units queens = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_QUEEN));
+  Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+  // Loop through all the queens to find one that is available to inject.
+  for (const auto& queen: queens) {
+    if (queen->energy >= 25) {
+      // Check if it's already mid injection to not interrupt.
+      bool injecting = false;
+      for (const auto& order: queen->orders) {
+        if (order.ability_id == ABILITY_ID::EFFECT_INJECTLARVA) {
+          injecting = true;
+          break;
+        }
+      }
+      // If injecting, go to next queen
+      if (injecting) {
+        continue;
+      }
+
+      if (!hatcheries.empty()) {
+        // Find the closest Hatchery to the Queen
+        const Unit *closest_hatchery = nullptr;
+        float min_distance = std::numeric_limits<float>::max();
+        for (const auto &hatchery : hatcheries) {
+          if (hatchery->build_progress == 1.0f) {
+            float distance = DistanceSquared2D(queen->pos, hatchery->pos);
+            if (distance < min_distance) {
+              min_distance = distance;
+              closest_hatchery = hatchery;
+            }
+          }
+        }
+        // Inject closest hatchery
+        if (closest_hatchery) {
+          Actions()->UnitCommand(queen, ABILITY_ID::EFFECT_INJECTLARVA,
+                               closest_hatchery);
+          std::cout << "Queen Injecting!" << std::endl;
+        }
+      }
+    }
+  }
+}
+
+// Used in OnBuildingConstructionComplete to assign 3 drones to an extractor as soon as it's built
+void BasicSc2Bot::AssignDronesToExtractor(const Unit* extractor) {
+  const ObservationInterface* observation = Observation();
+  std::set<Tag> assigned_drones; // Set to track which drones have already been assigned to not duplicate call the same drone.
+  int drone_count = 0;
+  while (drone_count < 3) {
+    const Unit *drone = findAvailableDrone();
+    if (!drone) {
+            std::cout << "No more available drones to assign." << std::endl;
+            break;
+        }
+    // Checks if drone is a valid unit and whether the drone's tag is already in the set of assigned drones.
+    if (drone && (assigned_drones.find(drone->tag) == assigned_drones.end())) {
+      Actions()->UnitCommand(drone, ABILITY_ID::HARVEST_GATHER, extractor);
+      assigned_drones.insert(drone->tag);
+      // Adding Tag to global set so findAvailableDrone() doesn't grab gas harvesting drones.
+      gas_harvesting_drones.insert(drone->tag); 
+      std::cout << "Drone assigned to extractor!" << std::endl;
+      ++drone_count;
+    }
+  }
 }

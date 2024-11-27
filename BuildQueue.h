@@ -4,7 +4,7 @@
 #ifndef BUILDQUEUE_H
 #define BUILDQUEUE_H
 
-#include <queue>
+#include <deque>
 #include <sc2api/sc2_typeenums.h>
 
 
@@ -33,17 +33,18 @@ class BuildQueue{
         BuildQueue &operator=(const BuildQueue &q);//assignment operator
 
         //getter(s)
-        std::queue<BuildOrderItem> getQueue() const;
+        std::deque<BuildOrderItem> getQueue() const;
 
         //methods
         bool isEmpty() const;/** returns true if the queue is empty */
         BuildOrderItem peek() const;/** returns a pointer to the next building in the queue */
         BuildOrderItem pop(); /** removes the next building in the queue, and returns a pointer to that building */
-        void push(const BuildOrderItem &BuildOrderItem);/**  adds the given BuildOrderItem to the queue*/
+        void push(const BuildOrderItem &BuildOrderItem);/**  adds the given BuildOrderItem to the back of the queue*/
+        void push_front(const BuildOrderItem& item); /** Adds the given BuildOrderItem to the front of the queue */
 
     private:
     //data
-    std::queue<BuildOrderItem> data;
+    std::deque<BuildOrderItem> data;
 
 };
 

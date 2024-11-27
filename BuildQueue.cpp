@@ -21,7 +21,7 @@ BuildQueue& BuildQueue::operator=(const BuildQueue &q){
 };
 
 //getter(s)
-std::queue<BuildOrderItem> BuildQueue::getQueue() const{
+std::deque<BuildOrderItem> BuildQueue::getQueue() const{
     return data;
 }
 
@@ -36,10 +36,15 @@ BuildOrderItem BuildQueue::peek() const{
 BuildOrderItem BuildQueue::pop() {
     /** removes the next building in the queue, and returns a pointer to that building */
     BuildOrderItem popped = data.front();
-    data.pop();
+    data.pop_front();
     return popped;
     };
 void BuildQueue::push(const BuildOrderItem &buildOrderItem){
-    /**  adds the given BuildOrderItem to the queue*/
-    data.push(buildOrderItem);
+    /**  adds the given BuildOrderItem to the back of the queue*/
+    data.push_back(buildOrderItem);
     }
+
+void BuildQueue::push_front(const BuildOrderItem& item) {
+    /** Adds the given BuildOrderItem to the front of the queue*/
+    data.push_front(item);
+}
