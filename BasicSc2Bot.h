@@ -2,7 +2,8 @@
 #define BASIC_SC2_BOT_H_
 
 #include "AttackBaseQueue.h"
-#include "BuildQueue.h" #include "AttackBaseQueue.h"
+#include "BuildQueue.h" 
+#include "AttackBaseQueue.h"
 #include "BuildQueue.h"
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_args.h"
@@ -22,7 +23,7 @@ public:
   virtual void OnStep();
   virtual void OnUnitIdle(const Unit *unit) final;
   virtual void OnBuildingConstructionComplete(const sc2::Unit* unit);
-  virtual void BasicSc2Bot::OnUnitDestroyed(const Unit* unit);
+  virtual void OnUnitDestroyed(const Unit* unit);
 
 private:
   const Unit *FindNearestMineralPatch(const Point2D &);
