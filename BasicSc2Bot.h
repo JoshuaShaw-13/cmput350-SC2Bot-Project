@@ -24,6 +24,7 @@ public:
   virtual void OnUnitIdle(const Unit *unit) final;
   virtual void OnBuildingConstructionComplete(const sc2::Unit* unit);
   virtual void OnUnitDestroyed(const Unit* unit);
+  virtual void OnUnitCreated(const Unit* unit);
 
 private:
   const Unit *FindNearestMineralPatch(const Point2D &);
@@ -43,7 +44,7 @@ private:
   bool tryBuild(struct BuildOrderItem);
   bool isArmyReady();
   bool inRallyRange(const Point2D &, const Point2D &, float);
-  void launchAttack(const Point2D &);
+  void launchAttack(const Units &attack_group, const Point2D &target);
   Point2D getMapCenter() const;
   Point2D getDirectionVector(const Point2D, const Point2D);
   double getVectorDifferenceMagnitude(const Point2D, const Point2D);
@@ -57,6 +58,8 @@ private:
   Tag initial_hatchery_tag; // Add this line
   AttackBaseQueue
       enemy_bases; // Queue containing locations we identify as enemy bases
+  int group_size = 3; // Number of roaches to send per wave
+  std::vector<Tag> current_roach_group; // Roaches in the current group to be sent to attack once vector.size() == group_size
 };
 
 #endif

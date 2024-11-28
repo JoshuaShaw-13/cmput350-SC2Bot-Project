@@ -22,7 +22,7 @@ public:
 
   // array of attackable enemy bases (logs unit that represents a base, like a
   // command center)
-  std::vector<const Unit *> enemyBaseLocations;
+  std::vector<Point2D> enemyBaseLocations;
 
   // array of scouts
   std::vector<const Unit *> scouts;
