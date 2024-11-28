@@ -79,6 +79,7 @@ void BasicSc2Bot::OnGameStart() {
 void BasicSc2Bot::OnStep() {
   const ObservationInterface *observation = Observation();
   int current_supply = observation->GetFoodUsed();
+  int supply_cap = observation->GetFoodCap();
   // Change it to build at cap for example build drones till 13
 
   // build next structure/unit
@@ -99,7 +100,43 @@ void BasicSc2Bot::OnStep() {
         Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_DRONE);
       }
     }
+  } else { // If build_order queue is empty, we want to start training army
+    // Build roaches until army cap is x-1/x
+    // Build an overlord at x-1/x army cap to gain more army space.
+    // We ensure not to queue multiple overlords by checking if one is already being built
+
+    if (current_supply >= supply_cap - 1) {
+    // First check if overlord is already being built by one of our units
+    bool overlord_in_production = false;
+    Units my_units = observation->GetUnits(Unit::Alliance::Self);
+    for (const auto &unit : my_units) {
+      for (const auto &order : unit->orders) {
+        if (order.ability_id == ABILITY_ID::TRAIN_OVERLORD) {
+          overlord_in_production = true;
+          break;
+        }
+      }
+      if (overlord_in_production) {
+        break;
+      }
+    }
+
+    // add Overlord to queue if not being built and current_supply is near supply_cap
+    if (!overlord_in_production) {
+      build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_OVERLORD));
+      std::cout << "Queued Overlord in build_order to increase supply." << std::endl;
+    } else {
+      BuildOrderItem roach_item(0, UNIT_TYPEID::ZERG_ROACH);
+      if (tryBuild(roach_item)) {
+      }
+    }
+  } else {
+    // When supply is not near cap, keep building Roaches
+    BuildOrderItem roach_item(0, UNIT_TYPEID::ZERG_ROACH);
+    if (tryBuild(roach_item)) {
+    }
   }
+}
 
   // check for enemy bases
   Units enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
@@ -109,9 +146,9 @@ void BasicSc2Bot::OnStep() {
          enemy_units[i]->unit_type == UNIT_TYPEID::TERRAN_COMMANDCENTER) &&
         std::find(state.enemyBaseLocations.begin(),
                   state.enemyBaseLocations.end(),
-                  enemy_units[i]) == state.enemyBaseLocations.end()) {
+                  enemy_units[i]->pos) == state.enemyBaseLocations.end()) {
       std::cout << "Base Located!!!";
-      state.enemyBaseLocations.push_back(enemy_units[i]);
+      state.enemyBaseLocations.push_back(enemy_units[i]->pos);
       Units overlords = observation->GetUnits(
           Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
       for (size_t j = 0; j < overlords.size(); j++) {
@@ -126,18 +163,31 @@ void BasicSc2Bot::OnStep() {
 
   // check if we have enough resources to expand to a new base
   //  this would be in the manager
-  if (state.enemyBaseLocations.size() > 0) {
-    std::cout << "Enemy base location: (" << state.enemyBaseLocations.at(0)->pos.x << ", " << state.enemyBaseLocations.at(0)->pos.y << std::endl;
-  }
+  // if (state.enemyBaseLocations.size() > 0) {
+  //   std::cout << "Enemy base location: (" << state.enemyBaseLocations.at(0).x << ", " << state.enemyBaseLocations.at(0).y << std::endl;
+  // }
   // Attack once we have an optimal army build
   // use the attack base queue
-  if (isArmyReady()) {
-    std::cout << "Army ready!" << std::endl;
-    if (state.enemyBaseLocations.size() > 0) {
-      std::cout << "Base found: Attacking enemy!!" << std::endl;
-      launchAttack(state.enemyBaseLocations.at(0)->pos);
+  // if (isArmyReady()) {
+  //   if (state.enemyBaseLocations.size() > 0) {
+  //     std::cout << "Base found: Attacking enemy!!" << std::endl;
+  //     launchAttack(state.enemyBaseLocations.at(0));
+  //   }
+  // }
+
+  // if our current group has >= the desired group_size and we have an enemy base location to attack. Send all roaches in the group to attack
+  if (current_roach_group.size() >= group_size && !state.enemyBaseLocations.empty()) {
+    Units attack_group;
+    for (auto tag : current_roach_group) {
+        const Unit* roach = observation->GetUnit(tag);
+        if (roach) {
+            attack_group.push_back(roach);
+        }
     }
-  }
+    launchAttack(attack_group, state.enemyBaseLocations.at(0));
+    std::cout << "Sending a group of " << attack_group.size() << " Roaches to attack!" << std::endl;
+    current_roach_group.clear(); // Reset the group for the next wave
+}
 
   // Queen inject on step since they don't revert back to idle after injecting initially.
   HandleQueenInjects();
@@ -236,6 +286,19 @@ void BasicSc2Bot::OnUnitDestroyed(const Unit* unit) {
       gas_harvesting_drones.erase(unit->tag);
     } else if (unit->unit_type == UNIT_TYPEID::ZERG_OVERLORD) {
       build_order.push_front(BuildOrderItem(0, UNIT_TYPEID::ZERG_OVERLORD));
+    }
+}
+
+void BasicSc2Bot::OnUnitCreated(const Unit* unit) {
+    switch (unit->unit_type.ToType()) {
+    case UNIT_TYPEID::ZERG_ROACH: {
+        // Add Roach to the current group
+        current_roach_group.push_back(unit->tag);
+        std::cout << "Roach created and added to current group. Group size: " << current_roach_group.size() << std::endl;
+        // Move Roach to the rally point
+        Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
+        break;
+    }
     }
 }
 const Point2D BasicSc2Bot::getValidRallyPoint(const Point2D& base_position, QueryInterface* query, float max_radius, float step) {
@@ -489,15 +552,32 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       }
       break;
 
-    case UNIT_TYPEID::ZERG_ROACH:
+    case UNIT_TYPEID::ZERG_ROACH: {
+       // Check if roach warren is built
+      const Units roach_warrens = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_ROACHWARREN));
+      bool roach_warren_done = false;
+      for (const auto &roach_warren : roach_warrens) {
+        if (roach_warren->build_progress == 1.0f) {
+          roach_warren_done = true;
+          break;
+        }
+      }
+      if (!roach_warren_done) {
+        // Cannot build roach without roach warren
+        return false;
+      }
+
       larva = findIdleLarva();
+      int current_supply = observation->GetFoodUsed();
+      int supply_cap = observation->GetFoodCap();
       if (larva && observation->GetMinerals() >= 75 &&
-          observation->GetVespene() >= 25) {
+          observation->GetVespene() >= 25 &&
+          current_supply < supply_cap) {
         Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_ROACH);
         return true;
       }
       break;
-
+    }
     case UNIT_TYPEID::ZERG_ZERGLING: {
       const Units spawning_pools = observation->GetUnits(
           Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_SPAWNINGPOOL));
@@ -664,8 +744,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
 bool BasicSc2Bot::isArmyReady() {
   int roach_count = 0;
   int zergling_count = 0;
-  const int optRoach = 1; // -r x
-  const int optZergling = 4; // -z x
+  const int optRoach = 3; // -r x
+  const int optZergling = 0; // -z x
   for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
     if (unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
       roach_count++;
@@ -675,14 +755,25 @@ bool BasicSc2Bot::isArmyReady() {
   }
   return roach_count >= optRoach && zergling_count >= optZergling;
 }
-void BasicSc2Bot::launchAttack(const Point2D &target) {
-  for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
-    if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING ||
-        unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
-      Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target);
+
+// void BasicSc2Bot::launchAttack(const Point2D &target) {
+//   for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
+//     if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING ||
+//         unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
+//       Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target);
+//     }
+//   }
+// }
+void BasicSc2Bot::launchAttack(const Units &attack_group, const Point2D &target) {
+    Actions()->UnitCommand(attack_group, ABILITY_ID::ATTACK, target); // Send group of roaches to attack
+    // Send any zerglings we have to attack.
+    for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
+      if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING) {
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target);
+      }
     }
-  }
 }
+
 // Function to calculate the center of the map
 Point2D BasicSc2Bot::getMapCenter() const {
   // Get the playable map area
