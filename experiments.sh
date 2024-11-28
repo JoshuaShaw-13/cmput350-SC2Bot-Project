@@ -11,6 +11,12 @@ cd build/bin/
 #  - Number of Zerglings in army (???)
 
 # execute BasicSc2Bot.exe
-./BasicSc2Bot.exe -c -a zerg -d Hard -m CactusValleyLE.SC2Map
+for race in zerg terran protoss; do
+    for diff in Beginner Easy Moderate Hard Insane; do
+        for map in CactusValleyLE.SC2Map BelShirVestigeLE.SC2Map ProximaStationLE.SC2Map; do
+            ./BasicSc2Bot.exe -c -a $race -d $diff -m $map
+        done
+    done
+done
 
 # Collect and log results (our win or enemy win)
