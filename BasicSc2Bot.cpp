@@ -387,6 +387,30 @@ void BasicSc2Bot::OnUnitCreated(const Unit* unit) {
     }
     }
 }
+
+void BasicSc2Bot::OnGameEnd() {
+    const auto& results = Observation()->GetResults();
+
+    for (const auto& result : results) {
+        if (result.player_id == Observation()->GetPlayerID()) {
+            switch (result.result) {
+                case sc2::GameResult::Win:
+                    std::cout << "Game ended: Victory!" << std::endl;
+                    break;
+                case sc2::GameResult::Loss:
+                    std::cout << "Game ended: Defeat." << std::endl;
+                    break;
+                case sc2::GameResult::Tie:
+                    std::cout << "Game ended: Tie." << std::endl;
+                    break;
+                default:
+                    std::cout << "Game ended: Unknown result." << std::endl;
+                    break;
+            }
+        }
+    }
+}
+
 const Point2D BasicSc2Bot::getValidRallyPoint(const Point2D& base_position, QueryInterface* query, float max_radius, float step) {
     // Spiral pattern starting from the base position
     for (float radius = step; radius <= max_radius; radius += step) {
