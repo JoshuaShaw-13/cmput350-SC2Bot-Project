@@ -28,6 +28,7 @@ public:
 
 private:
   const Unit *FindNearestMineralPatch(const Point2D &);
+  const Unit *FindNearestMineralPatchForHarvest(const Point2D &);
   const Unit *FindNearestVespenePatch(const Point2D &);
   const Point2D getValidRallyPoint(const Point2D &base_position,
                                    QueryInterface *query,
@@ -45,10 +46,12 @@ private:
   bool isArmyReady();
   bool inRallyRange(const Point2D &, const Point2D &, float);
   void launchAttack(const Units &attack_group, const Point2D &target);
+  void BalanceWorkers();
   Point2D getMapCenter() const;
   Point2D getDirectionVector(const Point2D, const Point2D);
   double getVectorDifferenceMagnitude(const Point2D, const Point2D);
   const Unit *findNextNearestMineralGroup(const Unit *);
+  bool positionsAreClose(const Point2D& a, const Point2D& b, float tolerance);
   BuildQueue build_order; // Queue that holds BuildOrderItems
   std::vector<Point2D>
       scout_locations; // Vector containing locations we need to scout
@@ -58,8 +61,14 @@ private:
   Tag initial_hatchery_tag; // Add this line
   AttackBaseQueue
       enemy_bases; // Queue containing locations we identify as enemy bases
-  int group_size = 3; // Number of roaches to send per wave
+  int group_size = 5; // Number of roaches to send per wave
   std::vector<Tag> current_roach_group; // Roaches in the current group to be sent to attack once vector.size() == group_size
+  // Contains the Tags/ids of roaches that have already been sent to attack
+  // so we can reassign them to a new building to attack once they're done attacking the one initially assigned.
+  std::set<Tag> attacking_roaches; 
+  int additional_drones = 7; // Number of drones we want to build after the build order queue is done
+  int built_drones = 0; // Number of drones already built after build order queue is done. Stops building drones when built_drones == additional_drones.
+  int built_extractors = 0;
 };
 
 #endif
