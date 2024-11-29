@@ -100,11 +100,20 @@ void BasicSc2Bot::OnStep() {
         Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_DRONE);
       }
     }
-  } else { // If build_order queue is empty, we want to start training army
+  } else { // If build_order queue is empty, we want to build additional drones then start training army
+    if (built_drones < additional_drones) {
+      const Unit *larva = nullptr;
+      larva = findIdleLarva();
+      if (larva && observation->GetMinerals() >= 50 &&
+          current_supply != observation->GetFoodCap()) {
+        Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_DRONE);
+        std::cout << "Building additional drone: " << built_drones << std::endl;
+        ++built_drones;
+      }
+    }
     // Build roaches until army cap is x-1/x
     // Build an overlord at x-1/x army cap to gain more army space.
     // We ensure not to queue multiple overlords by checking if one is already being built
-
     if (current_supply >= supply_cap - 1) {
     // First check if overlord is already being built by one of our units
     bool overlord_in_production = false;
@@ -138,25 +147,60 @@ void BasicSc2Bot::OnStep() {
   }
 }
 
-  // check for enemy bases
+  // Scout for enemy bases and add them to out state.enemyBaseLocations
   Units enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
-  for (size_t i = 0; i < enemy_units.size(); i++) {
-    if ((enemy_units[i]->unit_type == UNIT_TYPEID::ZERG_HATCHERY ||
-         enemy_units[i]->unit_type == UNIT_TYPEID::PROTOSS_NEXUS ||
-         enemy_units[i]->unit_type == UNIT_TYPEID::TERRAN_COMMANDCENTER) &&
-        std::find(state.enemyBaseLocations.begin(),
-                  state.enemyBaseLocations.end(),
-                  enemy_units[i]->pos) == state.enemyBaseLocations.end()) {
-      std::cout << "Base Located!!!";
-      state.enemyBaseLocations.push_back(enemy_units[i]->pos);
-      Units overlords = observation->GetUnits(
-          Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
-      for (size_t j = 0; j < overlords.size(); j++) {
-        Actions()->UnitCommand(overlords[j], ABILITY_ID::MOVE_MOVE,
-                               state.overlord_rally_point);
-      }
+  for (const auto& enemy_unit : enemy_units) {
+        // Get UnitTypeData for the enemy unit
+        const UnitTypeData& unit_type_data = observation->GetUnitTypeData().at(enemy_unit->unit_type);
+
+        // Check if the unit is a structure
+        bool is_structure = false;
+        for (const auto& attribute : unit_type_data.attributes) {
+            if (attribute == Attribute::Structure) {
+                is_structure = true;
+                break;
+            }
+        }
+
+        if (is_structure) {
+            // Check if this building is already in our list
+            bool building_exists = false;
+            for (auto& building : state.enemyBaseLocations) {
+                if (building.tag == enemy_unit->tag || positionsAreClose(building.position, enemy_unit->pos, 0.5f)) {
+                    building_exists = true;
+                    building.tag = enemy_unit->tag; // Updating tag in case it's changing
+                    break;
+                }
+            }
+            if (!building_exists) {
+                std::cout << "Enemy building located at position: (" << enemy_unit->pos.x << ", " << enemy_unit->pos.y << ")" << std::endl;
+                // Add the enemy building to our list
+                state.enemyBaseLocations.push_back({enemy_unit->tag, enemy_unit->pos});
+                Units overlords = observation->GetUnits(
+                Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
+                for (size_t j = 0; j < overlords.size(); j++) {
+                  Actions()->UnitCommand(overlords[j], ABILITY_ID::MOVE_MOVE,state.overlord_rally_point);
+            }
+        }
     }
   }
+  // for (size_t i = 0; i < enemy_units.size(); i++) {
+  //   if ((enemy_units[i]->unit_type == UNIT_TYPEID::ZERG_HATCHERY ||
+  //        enemy_units[i]->unit_type == UNIT_TYPEID::PROTOSS_NEXUS ||
+  //        enemy_units[i]->unit_type == UNIT_TYPEID::TERRAN_COMMANDCENTER) &&
+  //       std::find(state.enemyBaseLocations.begin(),
+  //                 state.enemyBaseLocations.end(),
+  //                 enemy_units[i]->pos) == state.enemyBaseLocations.end()) {
+  //     std::cout << "Base Located!!!";
+  //     state.enemyBaseLocations.push_back(enemy_units[i]->pos);
+  //     Units overlords = observation->GetUnits(
+  //         Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
+  //     for (size_t j = 0; j < overlords.size(); j++) {
+  //       Actions()->UnitCommand(overlords[j], ABILITY_ID::MOVE_MOVE,
+  //                              state.overlord_rally_point);
+  //     }
+  //   }
+  // }
 
   // build overseers when we are nearing troop capacity
   // buildOverseers();
@@ -184,13 +228,15 @@ void BasicSc2Bot::OnStep() {
             attack_group.push_back(roach);
         }
     }
-    launchAttack(attack_group, state.enemyBaseLocations.at(0));
-    std::cout << "Sending a group of " << attack_group.size() << " Roaches to attack!" << std::endl;
+    launchAttack(attack_group, state.enemyBaseLocations.at(0).position);
+    std::cout << "Sending a group of " << attack_group.size() << " Roaches to attack: (" << state.enemyBaseLocations.at(0).position.x << ", " << state.enemyBaseLocations.at(0).position.y << ")" << std::endl;
     current_roach_group.clear(); // Reset the group for the next wave
 }
 
   // Queen inject on step since they don't revert back to idle after injecting initially.
   HandleQueenInjects();
+  // Balance drones among hatcheries
+  BalanceWorkers();
 
   return;
 }
@@ -216,7 +262,7 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
       Actions()->UnitCommand(unit, ABILITY_ID::HARVEST_GATHER,
                              extractor_to_mine);
     } else {
-      const Unit *mineral_target = FindNearestMineralPatch(unit->pos);
+      const Unit *mineral_target = FindNearestMineralPatchForHarvest(unit->pos);
       if (!mineral_target) {
         break;
       }
@@ -265,7 +311,18 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_ROACH: {
-    Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
+    // If roach has been sent to attack
+    if (attacking_roaches.find(unit->tag) != attacking_roaches.end() ) {
+      // If there's a base to attack
+      if (!state.enemyBaseLocations.empty()) {
+        const Point2D& target = state.enemyBaseLocations.at(0).position;
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target); // Attacks next target instead of going to rally point
+      } else {
+        Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
+      }
+    } else {
+      Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
+    }
     break;
   }
   default: {
@@ -286,6 +343,35 @@ void BasicSc2Bot::OnUnitDestroyed(const Unit* unit) {
       gas_harvesting_drones.erase(unit->tag);
     } else if (unit->unit_type == UNIT_TYPEID::ZERG_OVERLORD) {
       build_order.push_front(BuildOrderItem(0, UNIT_TYPEID::ZERG_OVERLORD));
+    } else if (unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
+      attacking_roaches.erase(unit->tag); // Clean up attacking_roaches
+    }
+
+    // Check if an enemy building has been destroyed
+    if (unit->alliance == Unit::Alliance::Enemy) {
+      const ObservationInterface* observation = Observation();
+      const UnitTypeData& unit_type_data = observation->GetUnitTypeData().at(unit->unit_type);
+
+      // Check if the unit was a structure
+        bool is_structure = false;
+        for (const auto& attribute : unit_type_data.attributes) {
+            if (attribute == Attribute::Structure) {
+                is_structure = true;
+                break;
+            }
+        }
+
+        if (is_structure) {
+            // Remove the building from enemyBaseLocations
+            auto it = std::remove_if(state.enemyBaseLocations.begin(), state.enemyBaseLocations.end(),
+                                     [unit, this](const GameManager::EnemyBuilding& building) {
+                                         return positionsAreClose(building.position, unit->pos, 0.5f);
+                                     });
+            if (it != state.enemyBaseLocations.end()) {
+                state.enemyBaseLocations.erase(it, state.enemyBaseLocations.end());
+                std::cout << "Enemy building destroyed! Removed from building locations." << std::endl;
+            }
+        }
     }
 }
 
@@ -335,6 +421,23 @@ const Unit *BasicSc2Bot::FindNearestMineralPatch(const Point2D &start) {
     }
   }
   mineral_locations.insert(target);
+  return target;
+}
+
+const Unit *BasicSc2Bot::FindNearestMineralPatchForHarvest(const Point2D &start) {
+  Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
+  float distance = std::numeric_limits<float>::max();
+  const Unit *target = nullptr;
+  for (const auto &u : units) {
+    if (u->unit_type == UNIT_TYPEID::NEUTRAL_MINERALFIELD &&
+        mineral_locations.find(u) == mineral_locations.end()) {
+      float d = DistanceSquared2D(u->pos, start);
+      if (d < distance) {
+        distance = d;
+        target = u;
+      }
+    }
+  }
   return target;
 }
 
@@ -453,7 +556,7 @@ BasicSc2Bot::findBuildPositionNearMineral(const Point2D &target_position) {
   const float hatchery_size = 5.0f; // Hatchery size in grid squares
   const float build_radius = hatchery_size / 2.0f; // Half the size for radius
   const float search_radius =
-      build_radius + 15.0f;       // Add extra space for clearance
+      build_radius + 4.0f;       // Add extra space for clearance
   const float angle_step = 10.0f; // Angle increment in degrees
 
   const ObservationInterface *observation = Observation();
@@ -644,8 +747,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         std::cout << "direction vector: " << direction_vector.x << " , "
                   << direction_vector.y << std::endl;
         Point2D hatchery_location(
-            mineral_cluster_b->pos.x + (direction_vector.x * 15.0f),
-            mineral_cluster_b->pos.y + (direction_vector.y * 15.0f));
+            mineral_cluster_b->pos.x + (direction_vector.x * 3.0f),
+            mineral_cluster_b->pos.y + (direction_vector.y * 3.0f));
         std::cout << "calculated hatchery point: " << hatchery_location.x
                   << " , " << hatchery_location.y << std::endl;
         // find build position
@@ -666,11 +769,33 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     case UNIT_TYPEID::ZERG_EXTRACTOR: {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 25) {
-        const Unit *nearest_vespene_loc = FindNearestVespenePatch(drone->pos);
+        const Unit* target_hatchery = nullptr;
+        // If we're building the 3rd extractor
+        if (built_extractors == 2) {
+          Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+            for (const auto& hatchery : hatcheries) {
+                if (hatchery->build_progress == 1.0f && hatchery->tag != initial_hatchery_tag) {
+                    target_hatchery = hatchery;
+                    break;
+                }
+            }
+        } else { 
+          // If building first 2 extractors, we can use the position of the initial hatchery
+          target_hatchery = observation->GetUnit(initial_hatchery_tag); 
+        }
+        if (target_hatchery){
+          const Unit *nearest_vespene = FindNearestVespenePatch(target_hatchery->pos);
+          if (nearest_vespene) {
+            Actions()->UnitCommand(drone, ABILITY_ID::BUILD_EXTRACTOR, nearest_vespene);
+            ++built_extractors;
+            return true;
+          }
+        }
+        // const Unit *nearest_vespene_loc = FindNearestVespenePatch(drone->pos);
 
-        Actions()->UnitCommand(drone, ABILITY_ID::BUILD_EXTRACTOR,
-                               nearest_vespene_loc);
-        return true;
+        // Actions()->UnitCommand(drone, ABILITY_ID::BUILD_EXTRACTOR,
+        //                        nearest_vespene_loc);
+        // return true;
       }
       break;
     }
@@ -766,6 +891,10 @@ bool BasicSc2Bot::isArmyReady() {
 // }
 void BasicSc2Bot::launchAttack(const Units &attack_group, const Point2D &target) {
     Actions()->UnitCommand(attack_group, ABILITY_ID::ATTACK, target); // Send group of roaches to attack
+    // Add roach tags to attacking_roaches set
+    for (const auto& unit : attack_group) {
+      attacking_roaches.insert(unit->tag);
+    }
     // Send any zerglings we have to attack.
     for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
       if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING) {
@@ -805,7 +934,7 @@ BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
     }
     // get next mineral pairs
     mineral_loc_a = mineral_loc_b;
-    mineral_loc_b = FindNearestVespenePatch(mineral_loc_b->pos);
+    mineral_loc_b = FindNearestMineralPatch(mineral_loc_b->pos);
   }
   std::cout << std::endl;
   return mineral_loc_b; // in case of next group not found within 10 minerals,
@@ -931,4 +1060,72 @@ void BasicSc2Bot::AssignDronesToExtractor(const Unit* extractor) {
       ++drone_count;
     }
   }
+}
+
+bool BasicSc2Bot::positionsAreClose(const Point2D& a, const Point2D& b, float tolerance = 0.5f) {
+    return DistanceSquared2D(a, b) <= tolerance * tolerance;
+}
+
+void BasicSc2Bot::BalanceWorkers() {
+  const ObservationInterface* observation = Observation();
+  Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+  std::vector<const Unit*> overSaturatedBases; // Bases with more assigned_workers than ideal_workers
+  std::vector<const Unit*> underSaturatedBases; // Bases with more ideal_workers than assigned_workers
+
+  // Iterate to check if a hatchery is over or under saturated
+  for (const auto& base : hatcheries) {
+    if (base->build_progress < 1.0f) {
+      continue; // Ignore incomplete hatcheries
+    }
+
+    int assigned_workers = base->assigned_harvesters;
+    int ideal_workers = base->ideal_harvesters;
+    if (assigned_workers > ideal_workers) {
+      overSaturatedBases.push_back(base);
+    } else if (assigned_workers < ideal_workers) {
+      underSaturatedBases.push_back(base);
+    }
+  }
+  // Exit loop if there's no over or under saturated bases. If one is empty, there's no reassigning to be done.
+  if (overSaturatedBases.empty() || underSaturatedBases.empty()) {
+    return;
+  }
+  // Get correct amount of additional drones from over saturated base to send to under saturated base
+  for (const auto& overBase : overSaturatedBases) {
+    int additional_workers = overBase->assigned_harvesters - overBase->ideal_harvesters;
+    Units drones = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_DRONE));
+    std::vector<const Unit*> dronesToTransfer;
+
+    //Find the drones that are gathering minerals for this base
+    for (const auto& drone: drones) {
+      if (drone->orders.empty()) {
+        continue; // Ignore if the drone is idle
+      }
+      const Unit* target = observation->GetUnit(drone->orders.front().target_unit_tag);
+      if (!target) {
+        continue; // If target doesnt exist, ignore
+      }
+
+      if (target->unit_type == UNIT_TYPEID::NEUTRAL_MINERALFIELD && (DistanceSquared2D(target->pos, overBase->pos) < 100.0f)) {
+        dronesToTransfer.push_back(drone); // If it's gathering minerals and near the hatchery, transfer it
+        if (dronesToTransfer.size() > additional_workers) {
+          break; // Stop gathering drones to transfer if we found enough.
+        }
+      }
+    }
+
+    // Transfer drones to under saturated base
+    for (const auto& drone : dronesToTransfer) {
+      const Unit* underBase = underSaturatedBases.at(0);
+      if (underBase) {
+        const Unit* mineral_patch = FindNearestMineralPatchForHarvest(underBase->pos);
+        if (mineral_patch) {
+          Actions()->UnitCommand(drone, ABILITY_ID::HARVEST_GATHER, mineral_patch);
+          std::cout << "Transferring drone to under saturated hatchery!!" << std::endl;
+        }
+      }
+    }
+  }
+
+
 }
