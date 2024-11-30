@@ -19,10 +19,13 @@ for race in zerg terran protoss; do
                     win_count=0
                     loss_count=0
                     tie_count=0
+                    timeout_count=0
                     echo "$race, $diff, $map, $r_amount, $dr_amount: " >> ../../bot_results.txt
                     for run in 1 2 3 4 5; do
                         ./BasicSc2Bot.exe -c -a $race -d $diff -m $map -r $r_amount -dr $dr_amount > ../../match_output.txt
-                        if grep -q "Victory" ../../match_output.txt; then
+                        if grep -q "Timeout" ../../match_output.txt; then
+                            let timeout_count+=1
+                        elif grep -q "Victory" ../../match_output.txt; then
                             let win_count+=1
                         elif grep -q "Defeat" ../../match_output.txt; then
                             let loss_count+=1
@@ -33,6 +36,7 @@ for race in zerg terran protoss; do
                     echo "Wins: $win_count" >> ../../bot_results.txt
                     echo "Losses: $loss_count" >> ../../bot_results.txt
                     echo "Ties: $tie_count" >> ../../bot_results.txt
+                    echo "Timeouts: $timeouts_count" >> ../../bot_results.txt
                     echo "" >> ../../bot_results.txt
                 done
             done
