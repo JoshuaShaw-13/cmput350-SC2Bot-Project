@@ -8,17 +8,17 @@ cd build/bin/
 #  - Enemy Difficulty (Beginner, Easy, Moderate, Hard, Insane)
 #  - Map (CactusValleyLE.SC2Map, BelShirVestigeLE.SC2Map, and ProximaStationLE.SC2Map)
 #  - Number of Roaches in army (3 - 12)
-
+    
 # execute BasicSc2Bot.exe
-for race in zerg terran protoss; do
-    for diff in Easy Moderate Hard; do #additional options Beginner, Insane
-        for map in CactusValleyLE.SC2Map BelShirVestigeLE.SC2Map ProximaStationLE.SC2Map; do
-            for r_amount in 3 6 9 12; do
-                win_count = 0
-                loss_count = 0
-                tie_count = 0
+for race in zerg; do
+    for diff in Easy; do #additional options Beginner, Insane
+        for map in CactusValleyLE.SC2Map; do
+            for r_amount in 3; do
+                win_count=0
+                loss_count=0
+                tie_count=0
                 echo "$race, $diff, $map, $r_amount: " >> bot_results.txt
-                for run in 1 2 3 4 5; do
+                for run in 1 2 3; do
                     ./BasicSc2Bot.exe -c -a $race -d $diff -m $map > match_output.txt
                     if grep -q "Victory" match_output.txt; then
                         let win_count+=1
