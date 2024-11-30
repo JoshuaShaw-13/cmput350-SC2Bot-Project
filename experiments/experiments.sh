@@ -1,5 +1,28 @@
 #!/bin/bash
 
+# BEFORE RUNNING
+# - you can change the parameters being ran by including/excluding values for each in the for loops below 
+#   for example, if you only wanted to test one r_amount, change "5 6 7 8 9 10" to "8", 
+#   each variables must have at least one value in the for loop list though
+# - consider how long experiments will take
+#   if nothing goes wrong runs are typically 1-2 min but they are sometimes longer and lots of runs will occur with lots of parameters in loops
+#   you can exit early using Control+C or equivalent
+
+# RUNNING INSTRUCTION
+# 1. go to this directory in a linux capable terminal
+# 2. run "chmod +x experiments.sh"
+# 3. run "./experiments.sh" to start the experiments
+# 4. check bot_results.txt to see results get written
+# 5. if you want to exit the experiments early use Control+C (or your equivalent SIGINT)
+#    you will still have to close the current starcraft program running, but this will prevent more from running after
+
+# function and trap for ending the experiments early
+end() {
+    echo "Experiments ending"
+    exit 1
+}
+trap end SIGINT
+
 # go to path holding BasicSc2Bot.exe
 cd ../build/bin/
 
@@ -48,3 +71,4 @@ for race in zerg terran protoss; do # enemy race
         done
     done
 done
+

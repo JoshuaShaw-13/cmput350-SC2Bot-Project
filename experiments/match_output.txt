@@ -1,0 +1,1 @@
+Launched SC2 (C:\Program Files (x86)\StarCraft II\Versions\Base92440\SC2_x64.exe), PID: 13664
