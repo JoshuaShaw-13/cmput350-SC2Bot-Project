@@ -1,4 +1,5 @@
 #include <chrono>
+#include <iostream>
 
 std::string kDefaultMap = "BelshirVestigeLE.SC2Map";
 
@@ -167,8 +168,9 @@ static void RunBot(int argc, char *argv[], sc2::Race race) {
   auto startTime = std::chrono::high_resolution_clock::now();
   while (coordinator.Update()) {
     auto currentTime = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+    std::chrono::duration<double> elapsedSeconds = currentTime - startTime;
     if (elapsedSeconds.count() >= 300) {
+      std::cout << "TIMEOUT";
       coordinator.LeaveGame();
     }
   }
