@@ -19,6 +19,7 @@ using namespace sc2;
 
 class BasicSc2Bot : public Agent {
 public:
+  BasicSc2Bot(int group_size = 8, int additional_drones = 11) : group_size(group_size), additional_drones(additional_drones) {};
   virtual void OnGameStart();
   virtual void OnStep();
   virtual void OnUnitIdle(const Unit *unit) final;
@@ -62,12 +63,12 @@ private:
   Tag initial_hatchery_tag; // Add this line
   AttackBaseQueue
       enemy_bases; // Queue containing locations we identify as enemy bases
-  int group_size = 8; // Number of roaches to send per wave
+  int group_size; // Number of roaches to send per wave
   std::vector<Tag> current_roach_group; // Roaches in the current group to be sent to attack once vector.size() == group_size
   // Contains the Tags/ids of roaches that have already been sent to attack
   // so we can reassign them to a new building to attack once they're done attacking the one initially assigned.
   std::set<Tag> attacking_roaches; 
-  int additional_drones = 11; // Number of drones we want to build after the build order queue is done
+  int additional_drones; // Number of drones we want to build after the build order queue is done
   int built_drones = 0; // Number of drones already built after build order queue is done. Stops building drones when built_drones == additional_drones.
   int built_extractors = 0;
 };
