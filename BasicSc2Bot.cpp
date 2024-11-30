@@ -17,6 +17,14 @@ GameManager state;
 
 void BasicSc2Bot::OnGameStart() {
   const ObservationInterface *observation = Observation();
+
+  // Initialize the unscouted mineral patches vector
+    Units mineral_patches = Observation()->GetUnits(Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
+    for (const auto& mineral_patch : mineral_patches) {
+        unscouted_mineral_patches.push_back(mineral_patch->pos);
+    }
+
+  // Initialize info about our starting hatchery.
   const Unit *start_base =
       observation
           ->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))
@@ -233,6 +241,43 @@ void BasicSc2Bot::OnStep() {
     current_roach_group.clear(); // Reset the group for the next wave
 }
 
+  // Checking for end game scouting condition for roaches
+  if (state.enemyBaseLocations.empty() && !attacking_roaches.empty()) {
+      std::cout << "No enemy buildings detected. Starting scouting with roaches." << std::endl;
+      // Assign roaches to unscouted mineral patches
+      Units scouting_roaches;
+      for (auto tag : attacking_roaches) {
+          const Unit* roach = observation->GetUnit(tag);
+          if (roach && roach_scouting_assignments.find(tag) == roach_scouting_assignments.end()) {
+              scouting_roaches.push_back(roach);
+          }
+      }
+
+      for (const auto& roach : scouting_roaches) {
+          if (!unscouted_mineral_patches.empty()) {
+              Point2D target_patch = unscouted_mineral_patches.back();
+              unscouted_mineral_patches.pop_back();
+              Actions()->UnitCommand(roach, ABILITY_ID::MOVE_MOVE, target_patch);
+              roach_scouting_assignments[roach->tag] = target_patch;
+          }
+      }
+  } else if (!state.enemyBaseLocations.empty()) {
+      // Found new enemy buildings
+      if (!roach_scouting_assignments.empty()) {
+          std::cout << "Enemy building found! Canceling scouting and attacking." << std::endl;
+          Units attacking_roaches_units;
+          for (auto tag : attacking_roaches) {
+              const Unit* roach = observation->GetUnit(tag);
+              if (roach) {
+                  attacking_roaches_units.push_back(roach);
+              }
+          }
+          Actions()->UnitCommand(attacking_roaches_units, ABILITY_ID::ATTACK, state.enemyBaseLocations.at(0).position);
+          // Clear scouting assignments
+          roach_scouting_assignments.clear();
+      }
+  }
+
   // Queen inject on step since they don't revert back to idle after injecting initially.
   HandleQueenInjects();
   // Balance drones among hatcheries
@@ -271,8 +316,8 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_OVERLORD: {
-    std::cout << "  " << unit->pos.x << "," << unit->pos.y << ", "
-              << inRallyRange(unit->pos, state.overlord_rally_point, 25.0);
+    // std::cout << "  " << unit->pos.x << "," << unit->pos.y << ", "
+    //           << inRallyRange(unit->pos, state.overlord_rally_point, 25.0);
     if (scout_locations.size() > 0) {
       Actions()->UnitCommand(unit, ABILITY_ID::SMART, scout_locations.front());
       scout_locations.erase(scout_locations.begin());
@@ -318,7 +363,15 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
         const Point2D& target = state.enemyBaseLocations.at(0).position;
         Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target); // Attacks next target instead of going to rally point
       } else {
-        Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
+        if (!unscouted_mineral_patches.empty()) { // Check if there mineral patches to scoute
+                    // Assign the next unscouted mineral patch
+                    Point2D target_patch = unscouted_mineral_patches.back();
+                    unscouted_mineral_patches.pop_back();
+                    Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, target_patch);
+                    roach_scouting_assignments[unit->tag] = target_patch;
+                } else {
+                    Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
+                }
       }
     } else {
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
@@ -345,6 +398,7 @@ void BasicSc2Bot::OnUnitDestroyed(const Unit* unit) {
       build_order.push_front(BuildOrderItem(0, UNIT_TYPEID::ZERG_OVERLORD));
     } else if (unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
       attacking_roaches.erase(unit->tag); // Clean up attacking_roaches
+      roach_scouting_assignments.erase(unit->tag);
     }
 
     // Check if an enemy building has been destroyed
@@ -991,8 +1045,8 @@ Point2D BasicSc2Bot::getDirectionVector(Point2D vec_a, Point2D vec_b) {
 
 bool BasicSc2Bot::inRallyRange(const Point2D &pos, const Point2D &rally,
                                float range) {
-  std::cout << "     pos.x: " << pos.x << "pos.y: " << pos.y
-            << "rally.x: " << rally.x << "rally.y: " << rally.y << "     ";
+  // std::cout << "     pos.x: " << pos.x << "pos.y: " << pos.y
+  //           << "rally.x: " << rally.x << "rally.y: " << rally.y << "     ";
   if (abs(pos.x - rally.x) < range && abs(pos.y - rally.y) < range) {
     return true;
   } else {
