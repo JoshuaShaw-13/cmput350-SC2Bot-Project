@@ -1,3 +1,5 @@
+#include <chrono>
+#include <iostream>
 
 std::string kDefaultMap = "BelshirVestigeLE.SC2Map";
 
@@ -89,14 +91,14 @@ static void ParseArguments(int argc, char *argv[],
   std::string GamePortStr;
   // Parse for roach count. -r
   std::string RoachCountStr;
-    if (arg_parser.Get("RoachCount", RoachCountStr)) {
-        connect_options.roach_count = std::stoi(RoachCountStr);
-    }
+  if (arg_parser.Get("RoachCount", RoachCountStr)) {
+    connect_options.roach_count = std::stoi(RoachCountStr);
+  }
   // Parse for drone count. -dr
   std::string DroneCountStr;
-    if (arg_parser.Get("DroneCount", DroneCountStr)) {
-        connect_options.drone_count = std::stoi(DroneCountStr);
-    }
+  if (arg_parser.Get("DroneCount", DroneCountStr)) {
+    connect_options.drone_count = std::stoi(DroneCountStr);
+  }
   if (arg_parser.Get("GamePort", GamePortStr)) {
     connect_options.GamePort = atoi(GamePortStr.c_str());
   }
@@ -133,7 +135,10 @@ static void RunBot(int argc, char *argv[], sc2::Race race) {
   ParseArguments(argc, argv, Options);
 
   sc2::Coordinator coordinator;
-  BasicSc2Bot* Agent = new BasicSc2Bot(Options.roach_count, Options.drone_count); // Initializing agent with inputted roach and drone counts
+  BasicSc2Bot *Agent =
+      new BasicSc2Bot(Options.roach_count,
+                      Options.drone_count); // Initializing agent with inputted
+                                            // roach and drone counts
 
   int num_agents;
   if (Options.ComputerOpponent) {
@@ -159,8 +164,14 @@ static void RunBot(int argc, char *argv[], sc2::Race race) {
     coordinator.JoinGame();
     std::cout << " Successfully joined game" << std::endl;
   }
-
   coordinator.SetTimeoutMS(10000);
+  auto startTime = std::chrono::high_resolution_clock::now();
   while (coordinator.Update()) {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsedSeconds = currentTime - startTime;
+    if (elapsedSeconds.count() >= 300) {
+      std::cout << "TIMEOUT";
+      coordinator.LeaveGame();
+    }
   }
 }
