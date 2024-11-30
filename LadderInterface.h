@@ -63,13 +63,17 @@ struct ConnectionOptions {
   sc2::Race ComputerRace;
   std::string OpponentId;
   std::string Map;
+  int roach_count = 8;
+  int drone_count = 11;
 };
 
 static void ParseArguments(int argc, char *argv[],
                            ConnectionOptions &connect_options) {
   sc2::ArgParser arg_parser(argv[0]);
   arg_parser.AddOptions(
-      {{"-g", "--GamePort", "Port of client to connect to", false},
+      {{"-r", "--RoachCount", "Number of roaches per group"},
+       {"-dr", "--DroneCount", "Number of additional drones to build"},
+       {"-g", "--GamePort", "Port of client to connect to", false},
        {"-o", "--StartPort", "Starting server port", false},
        {"-l", "--LadderServer", "Ladder server address", false},
        {"-c", "--ComputerOpponent", "If we set up a computer oppenent"},
@@ -83,6 +87,16 @@ static void ParseArguments(int argc, char *argv[],
        {"-x", "--OpponentId", "PlayerId of opponent"}});
   arg_parser.Parse(argc, argv);
   std::string GamePortStr;
+  // Parse for roach count. -r
+  std::string RoachCountStr;
+    if (arg_parser.Get("RoachCount", RoachCountStr)) {
+        connect_options.roach_count = std::stoi(RoachCountStr);
+    }
+  // Parse for drone count. -dr
+  std::string DroneCountStr;
+    if (arg_parser.Get("DroneCount", DroneCountStr)) {
+        connect_options.drone_count = std::stoi(DroneCountStr);
+    }
   if (arg_parser.Get("GamePort", GamePortStr)) {
     connect_options.GamePort = atoi(GamePortStr.c_str());
   }
@@ -114,11 +128,12 @@ static void ParseArguments(int argc, char *argv[],
   arg_parser.Get("OpponentId", connect_options.OpponentId);
 }
 
-static void RunBot(int argc, char *argv[], sc2::Agent *Agent, sc2::Race race) {
+static void RunBot(int argc, char *argv[], sc2::Race race) {
   ConnectionOptions Options;
   ParseArguments(argc, argv, Options);
 
   sc2::Coordinator coordinator;
+  BasicSc2Bot* Agent = new BasicSc2Bot(Options.roach_count, Options.drone_count); // Initializing agent with inputted roach and drone counts
 
   int num_agents;
   if (Options.ComputerOpponent) {
@@ -127,7 +142,8 @@ static void RunBot(int argc, char *argv[], sc2::Agent *Agent, sc2::Race race) {
         {CreateParticipant(race, Agent),
          CreateComputer(Options.ComputerRace, Options.ComputerDifficulty)});
     coordinator.LoadSettings(1, argv);
-    coordinator.SetRealtime(true);
+    coordinator.SetRealtime(false);
+    coordinator.SetStepSize(20);
     coordinator.LaunchStarcraft();
     coordinator.StartGame(Options.Map);
   } else {
