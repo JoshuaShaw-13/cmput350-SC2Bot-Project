@@ -18,10 +18,10 @@
 using namespace sc2;
 
 GameManager state;
+int MAX_SCOUTS_PER_QUAD = 1;
 
 void BasicSc2Bot::OnGameStart() {
     const ObservationInterface *observation = Observation();
-    int MAX_SCOUTS_PER_QUAD = 1;
     // Initialize the unscouted mineral patches vector
     Units mineral_patches = Observation()->GetUnits(
         Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
@@ -415,10 +415,6 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
         }
         break;
     }
-    case UNIT_TYPEID::ZERG_ZERGLING: {
-      Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
-      break;
-    }
     case UNIT_TYPEID::ZERG_ROACH: {
         // If roach has been sent to attack
         if (attacking_roaches.find(unit->tag) != attacking_roaches.end()) {
@@ -538,19 +534,19 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
             std::vector<Point2D> *scout_points;
             std::set<Tag> *scouts_at_quad;
             bool added_scout = false;
-            if (scouts_nw.size() < 2) {
+            if (scouts_nw.size() < MAX_SCOUTS_PER_QUAD) {
                 scout_points = &scout_loc_north_west;
                 scouts_at_quad = &scouts_nw;
                 added_scout = true;
-            } else if (scouts_ne.size() < 2) {
+            } else if (scouts_ne.size() < MAX_SCOUTS_PER_QUAD) {
                 scout_points = &scout_loc_north_east;
                 scouts_at_quad = &scouts_ne;
                 added_scout = true;
-            } else if (scouts_sw.size() < 2) {
+            } else if (scouts_sw.size() < MAX_SCOUTS_PER_QUAD) {
                 scout_points = &scout_loc_south_west;
                 scouts_at_quad = &scouts_sw;
                 added_scout = true;
-            } else if (scouts_se.size() < 2) {
+            } else if (scouts_se.size() < MAX_SCOUTS_PER_QUAD) {
                 scout_points = &scout_loc_south_east;
                 scouts_at_quad = &scouts_se;
                 added_scout = true;
