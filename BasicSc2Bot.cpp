@@ -21,7 +21,7 @@ GameManager state;
 
 void BasicSc2Bot::OnGameStart() {
     const ObservationInterface *observation = Observation();
-    int MAX_SCOUTS_PER_QUAD = 2;
+    int MAX_SCOUTS_PER_QUAD = 1;
     // Initialize the unscouted mineral patches vector
     Units mineral_patches = Observation()->GetUnits(
         Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
@@ -415,6 +415,10 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
         }
         break;
     }
+    case UNIT_TYPEID::ZERG_ZERGLING: {
+      Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
+      break;
+    }
     case UNIT_TYPEID::ZERG_ROACH: {
         // If roach has been sent to attack
         if (attacking_roaches.find(unit->tag) != attacking_roaches.end()) {
@@ -453,6 +457,9 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
         // drones to the extractor.
         if (unit->unit_type == UNIT_TYPEID::ZERG_EXTRACTOR) {
             AssignDronesToExtractor(unit);
+        }
+        if(unit->unit_type == UNIT_TYPEID::ZERG_HATCHERY){
+          state.rally_point = unit->pos;
         }
     }
 
