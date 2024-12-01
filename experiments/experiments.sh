@@ -12,6 +12,8 @@
 # 1. go to this directory in a linux capable terminal
 # 2. run "chmod +x experiments.sh"
 # 3. run "./experiments.sh" to start the experiments
+# 3.5. run "sed -i 's/\r$//' ./experiments.sh" if you are getting this error (has to do with newline characters):
+#      -bash: ./experiments.sh: /bin/bash^M: bad interpreter: No such file or directory
 # 4. check bot_results.txt to see results get written
 # 5. if you want to exit the experiments early use Control+C (or your equivalent SIGINT)
 #    you will still have to close the current starcraft program running, but this will prevent more from running after
@@ -38,10 +40,10 @@ echo "" > ../../experiments/bot_results.txt
 
 # loop through all testing parameters
 for race in zerg terran protoss; do # enemy race
-    for diff in Beginner Easy Moderate Hard Insane; do # enemy difficulty
-        for map in CactusValleyLE.SC2Map BelShirVestigeLE.SC2Map ProximaStationLE.SC2Map; do # map used
-            for r_amount in 5 6 7 8 9 10; do # amount of roaches in group
-                for dr_amount in 4 6 8 10 12; do # amount of additional drones
+    for diff in Medium Hard VeryHard; do # enemy difficulty
+        for map in ProximaStationLE.SC2Map; do # map used
+            for r_amount in 5 8 10; do # amount of roaches in group
+                for dr_amount in 4 8 12; do # amount of additional drones
                     # set counts to 0 for this parameter set
                     win_count=0
                     loss_count=0
