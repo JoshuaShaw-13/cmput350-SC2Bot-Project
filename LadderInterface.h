@@ -148,7 +148,7 @@ static void RunBot(int argc, char *argv[], sc2::Race race) {
          CreateComputer(Options.ComputerRace, Options.ComputerDifficulty)});
     coordinator.LoadSettings(1, argv);
     coordinator.SetRealtime(false);
-    coordinator.SetStepSize(20);
+    coordinator.SetStepSize(1);
     coordinator.LaunchStarcraft();
     coordinator.StartGame(Options.Map);
   } else {
@@ -171,7 +171,7 @@ static void RunBot(int argc, char *argv[], sc2::Race race) {
     std::chrono::duration<double> elapsedSeconds = currentTime - startTime;
     if (elapsedSeconds.count() >= 300) {
       std::cout << "TIMEOUT";
-      coordinator.LeaveGame();
+      break;
     }
   }
 }

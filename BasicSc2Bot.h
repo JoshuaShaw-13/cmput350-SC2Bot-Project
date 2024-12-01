@@ -15,6 +15,7 @@
 #include <set>
 #include <unordered_set>
 #include <vector>
+#include "GameManager.h"
 
 using namespace sc2;
 
@@ -48,7 +49,7 @@ private:
   bool tryBuild(struct BuildOrderItem);
   bool isArmyReady();
   bool inRallyRange(const Point2D &, const Point2D &, float);
-  void launchAttack(const Units &attack_group, const Point2D &target);
+  void launchAttack(const Units &attack_group, const GameManager::EnemyBuilding &target_building);
   void BalanceWorkers();
   Point2D getMapCenter() const;
   Point2D getDirectionVector(const Point2D, const Point2D);
@@ -83,6 +84,7 @@ private:
   int built_extractors = 0;
   std::vector<Point2D> unscouted_mineral_patches; // Tracks which mineral patches the roaches haven't scouted yet.
   std::map<Tag, Point2D> roach_scouting_assignments; // Tracks which roach is scouting which 2D point on the map.
+  std::unordered_map<Tag, GameManager::EnemyBuilding> roach_attack_targets; // Map from Roach Tag to Building Tag
 };
 
 #endif

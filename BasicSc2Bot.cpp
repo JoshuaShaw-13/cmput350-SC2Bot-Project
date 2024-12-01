@@ -155,7 +155,7 @@ void BasicSc2Bot::OnStep() {
         // Build an overlord at x-1/x army cap to gain more army space.
         // We ensure not to queue multiple overlords by checking if one is
         // already being built
-        if (current_supply >= supply_cap - 1) {
+        if (current_supply >= supply_cap - 3) {
             // First check if overlord is already being built by one of our
             // units
             bool overlord_in_production = false;
@@ -285,7 +285,9 @@ void BasicSc2Bot::OnStep() {
                 attack_group.push_back(roach);
             }
         }
-        launchAttack(attack_group, state.enemyBaseLocations.at(0).position);
+        int random_index = GetRandomInteger(0, state.enemyBaseLocations.size() - 1);
+        const GameManager::EnemyBuilding &target_building = state.enemyBaseLocations.at(random_index);
+        launchAttack(attack_group, target_building);
         std::cout << "Sending a group of " << attack_group.size()
                   << " Roaches to attack: ("
                   << state.enemyBaseLocations.at(0).position.x << ", "
@@ -418,9 +420,33 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     case UNIT_TYPEID::ZERG_ROACH: {
         // If roach has been sent to attack
         if (attacking_roaches.find(unit->tag) != attacking_roaches.end()) {
+            auto target_it = roach_attack_targets.find(unit->tag);
+            if (target_it != roach_attack_targets.end()) {
+                const GameManager::EnemyBuilding &target_building = target_it->second;
+                const Unit *building_unit = Observation()->GetUnit(target_building.tag);
+                if (!building_unit || !building_unit->is_alive) {
+                    // Building is destroyed or no longer exists
+                    // Remove it from enemyBaseLocations
+                    auto building_it = std::find_if(
+                        state.enemyBaseLocations.begin(),
+                        state.enemyBaseLocations.end(),
+                        [&target_building](const GameManager::EnemyBuilding &building) {
+                            return building.tag == target_building.tag;
+                        });
+
+                    if (building_it != state.enemyBaseLocations.end()) {
+                        state.enemyBaseLocations.erase(building_it);
+                        std::cout << "Removed destroyed enemy building at position: ("
+                                  << target_building.position.x << ", "
+                                  << target_building.position.y << ")" << std::endl;
+                    }
+                }
+                roach_attack_targets.erase(target_it);
+            }
             // If there's a base to attack
             if (!state.enemyBaseLocations.empty()) {
-                const Point2D &target = state.enemyBaseLocations.at(0).position;
+                int random_index = GetRandomInteger(0, state.enemyBaseLocations.size() - 1);
+                const Point2D &target = state.enemyBaseLocations.at(random_index).position;
                 Actions()->UnitCommand(unit, ABILITY_ID::ATTACK,
                                        target); // Attacks next target instead
                                                 // of going to rally point
@@ -479,6 +505,10 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
             scouts_sw.erase(unit->tag);
             scouts_se.erase(unit->tag);
             scouts.erase(unit->tag);
+        } else if (unit->unit_type == UNIT_TYPEID::ZERG_ROACH && unit->alliance == sc2::Unit::Alliance::Self) {
+            attacking_roaches.erase(unit->tag);
+            roach_attack_targets.erase(unit->tag);
+            roach_scouting_assignments.erase(unit->tag);
         }
 
         // Check if an enemy building has been destroyed
@@ -502,8 +532,8 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
                     state.enemyBaseLocations.begin(),
                     state.enemyBaseLocations.end(),
                     [unit, this](const GameManager::EnemyBuilding &building) {
-                        return positionsAreClose(building.position, unit->pos,
-                                                 0.5f);
+                        return (positionsAreClose(building.position, unit->pos,
+                                                 1.5f) || (building.tag == unit->tag));
                     });
                 if (it != state.enemyBaseLocations.end()) {
                     state.enemyBaseLocations.erase(
@@ -1147,12 +1177,13 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     //   }
     // }
     void BasicSc2Bot::launchAttack(const Units &attack_group,
-                                   const Point2D &target) {
+                                   const GameManager::EnemyBuilding &target_building) {
         Actions()->UnitCommand(attack_group, ABILITY_ID::ATTACK,
-                               target); // Send group of roaches to attack
+                               target_building.position); // Send group of roaches to attack
         // Add roach tags to attacking_roaches set
         for (const auto &unit : attack_group) {
             attacking_roaches.insert(unit->tag);
+            roach_attack_targets[unit->tag] = target_building; // Map roach to the building it's attacking
         }
     }
 
