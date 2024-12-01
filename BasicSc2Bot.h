@@ -13,6 +13,7 @@
 #include <sc2api/sc2_agent.h>
 #include <sc2api/sc2_unit_filters.h>
 #include <set>
+#include <unordered_set>
 #include <vector>
 
 using namespace sc2;
@@ -54,6 +55,15 @@ private:
   double getVectorDifferenceMagnitude(const Point2D, const Point2D);
   const Unit *findNextNearestMineralGroup(const Unit *);
   bool positionsAreClose(const Point2D& a, const Point2D& b, float tolerance);
+  std::vector<Point2D> scout_loc_north_east, scout_loc_north_west, scout_loc_south_east, scout_loc_south_west; // scouting locations
+  struct Scout {
+    Tag unit_tag;              // Tag of the Zergling assigned as the scout
+    size_t current_target_idx; // Index of the current resource point being scouted
+    Scout(Tag t, size_t curr) : unit_tag(t), current_target_idx(curr){}
+  };
+  std::set<Tag> scouts_ne, scouts_nw, scouts_se, scouts_sw; // scouts for each location
+  std::map<Tag, Scout> scouts;
+  void patrolScouts();
   BuildQueue build_order; // Queue that holds BuildOrderItems
   std::vector<Point2D>
       scout_locations; // Vector containing locations we need to scout
@@ -71,6 +81,7 @@ private:
   int additional_drones; // Number of drones we want to build after the build order queue is done
   int built_drones = 0; // Number of drones already built after build order queue is done. Stops building drones when built_drones == additional_drones.
   int built_extractors = 0;
+  
 };
 
 #endif
