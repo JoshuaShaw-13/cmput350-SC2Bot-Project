@@ -81,7 +81,8 @@ private:
   int additional_drones; // Number of drones we want to build after the build order queue is done
   int built_drones = 0; // Number of drones already built after build order queue is done. Stops building drones when built_drones == additional_drones.
   int built_extractors = 0;
-  
+  std::vector<Point2D> unscouted_mineral_patches; // Tracks which mineral patches the roaches haven't scouted yet.
+  std::map<Tag, Point2D> roach_scouting_assignments; // Tracks which roach is scouting which 2D point on the map.
 };
 
 #endif
