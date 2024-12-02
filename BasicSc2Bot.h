@@ -19,8 +19,7 @@ using namespace sc2;
 
 class BasicSc2Bot : public Agent {
 public:
-  BasicSc2Bot(int group_size = 8, int additional_drones = 11)
-      : group_size(group_size), additional_drones(additional_drones){};
+  BasicSc2Bot() : group_size(8), additional_drones(12){};
   virtual void OnGameStart();
   virtual void OnStep();
   virtual void OnUnitIdle(const Unit *unit) final;
