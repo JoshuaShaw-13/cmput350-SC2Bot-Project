@@ -15,7 +15,6 @@
 #include <unordered_set>
 #include <vector>
 
-
 using namespace sc2;
 
 class BasicSc2Bot : public Agent {
@@ -28,7 +27,6 @@ public:
   virtual void OnBuildingConstructionComplete(const sc2::Unit *unit);
   virtual void OnUnitDestroyed(const Unit *unit);
   virtual void OnUnitCreated(const Unit *unit);
-  virtual void OnGameEnd();
 
 private:
   const Unit *FindNearestMineralPatch(const Point2D &);

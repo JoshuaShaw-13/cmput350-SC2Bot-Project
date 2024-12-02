@@ -78,7 +78,6 @@ void BasicSc2Bot::OnGameStart() {
   Point2D start_location = start_base->pos;
   int map_width = observation->GetGameInfo().width;
   int map_height = observation->GetGameInfo().height;
-  std::cout << map_width << " " << map_height;
   int x_half = map_width / 2;
   int y_half = map_height / 2;
   if (start_location.x > x_half) {
@@ -106,11 +105,6 @@ void BasicSc2Bot::OnGameStart() {
       }
     }
   }
-  std::cout << std::endl
-            << "scout nw size: " << scout_loc_north_west.size() << std::endl;
-  std::cout << scout_loc_north_east.size() << std::endl;
-  std::cout << scout_loc_south_west.size() << std::endl;
-  std::cout << scout_loc_south_east.size() << std::endl;
 }
 
 void BasicSc2Bot::OnStep() {
@@ -125,8 +119,6 @@ void BasicSc2Bot::OnStep() {
     if (current_supply >= buildItem.supply) {
       if (tryBuild(buildItem)) {
         build_order.pop();
-        std::cout << "Building: " << UnitTypeToName(buildItem.unit_type)
-                  << std::endl;
       }
     } else {
       const Unit *larva = nullptr;
@@ -144,7 +136,6 @@ void BasicSc2Bot::OnStep() {
       if (larva && observation->GetMinerals() >= 50 &&
           current_supply != observation->GetFoodCap()) {
         Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_DRONE);
-        std::cout << "Building additional drone: " << built_drones << std::endl;
         ++built_drones;
       }
     }
@@ -173,8 +164,6 @@ void BasicSc2Bot::OnStep() {
       // near supply_cap
       if (!overlord_in_production) {
         build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_OVERLORD));
-        std::cout << "Queued Overlord in build_order to increase supply."
-                  << std::endl;
       } else {
         BuildOrderItem roach_item(0, UNIT_TYPEID::ZERG_ROACH);
         if (tryBuild(roach_item)) {
@@ -216,9 +205,6 @@ void BasicSc2Bot::OnStep() {
         }
       }
       if (!building_exists) {
-        std::cout << "Enemy building located at position: ("
-                  << enemy_unit->pos.x << ", " << enemy_unit->pos.y << ")"
-                  << std::endl;
         // Add the enemy building to our list
         state.enemyBaseLocations.push_back({enemy_unit->tag, enemy_unit->pos});
         Units overlords = observation->GetUnits(
@@ -246,18 +232,12 @@ void BasicSc2Bot::OnStep() {
     const GameManager::EnemyBuilding &target_building =
         state.enemyBaseLocations.at(random_index);
     launchAttack(attack_group, target_building);
-    std::cout << "Sending a group of " << attack_group.size()
-              << " Roaches to attack: ("
-              << state.enemyBaseLocations.at(0).position.x << ", "
-              << state.enemyBaseLocations.at(0).position.y << ")" << std::endl;
     current_roach_group.clear(); // Reset the group for the next wave
   }
   patrolScouts();
 
   // Checking for end game scouting condition for roaches
   if (state.enemyBaseLocations.empty() && !attacking_roaches.empty()) {
-    std::cout << "No enemy buildings detected. Starting scouting with roaches."
-              << std::endl;
     // Assign roaches to unscouted mineral patches
     Units scouting_roaches;
     for (auto tag : attacking_roaches) {
@@ -279,8 +259,6 @@ void BasicSc2Bot::OnStep() {
   } else if (!state.enemyBaseLocations.empty()) {
     // Found new enemy buildings
     if (!roach_scouting_assignments.empty()) {
-      std::cout << "Enemy building found! Canceling scouting and attacking."
-                << std::endl;
       Units attacking_roaches_units;
       for (auto tag : attacking_roaches) {
         const Unit *roach = observation->GetUnit(tag);
@@ -334,8 +312,6 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_OVERLORD: {
-    std::cout << "  " << unit->pos.x << "," << unit->pos.y << ", "
-              << inRallyRange(unit->pos, state.overlord_rally_point, 25.0);
     if (scout_locations.size() > 0) {
       Actions()->UnitCommand(unit, ABILITY_ID::SMART, scout_locations.front());
       scout_locations.erase(scout_locations.begin());
@@ -386,9 +362,6 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
 
           if (building_it != state.enemyBaseLocations.end()) {
             state.enemyBaseLocations.erase(building_it);
-            std::cout << "Removed destroyed enemy building at position: ("
-                      << target_building.position.x << ", "
-                      << target_building.position.y << ")" << std::endl;
           }
         }
         roach_attack_targets.erase(target_it);
@@ -449,7 +422,6 @@ void BasicSc2Bot::OnUnitDestroyed(const Unit *unit) {
     roach_scouting_assignments.erase(unit->tag);
   } else if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING &&
              unit->alliance == sc2::Unit::Alliance::Self) {
-    std::cout << "scout killed" << std::endl;
     scouts_nw.erase(unit->tag);
     scouts_ne.erase(unit->tag);
     scouts_sw.erase(unit->tag);
@@ -487,9 +459,6 @@ void BasicSc2Bot::OnUnitDestroyed(const Unit *unit) {
           });
       if (it != state.enemyBaseLocations.end()) {
         state.enemyBaseLocations.erase(it, state.enemyBaseLocations.end());
-        std::cout << "Enemy building destroyed! Removed from building "
-                     "locations."
-                  << std::endl;
       }
     }
   }
@@ -500,8 +469,6 @@ void BasicSc2Bot::OnUnitCreated(const Unit *unit) {
   case UNIT_TYPEID::ZERG_ROACH: {
     // Add Roach to the current group
     current_roach_group.push_back(unit->tag);
-    std::cout << "Roach created and added to current group. Group size: "
-              << current_roach_group.size() << std::endl;
     // Move Roach to the rally point
     Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
     break;
@@ -536,36 +503,11 @@ void BasicSc2Bot::OnUnitCreated(const Unit *unit) {
       scouts_at_quad->insert(unit->tag);
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
                              scout_points->at(index));
-      std::cout << "added scout: " << scouts.size()
-                << "moving to idx: " << index
-                << " x:" << scout_points->at(index).x << std::endl;
     }
     break;
   }
   default: {
   }
-  }
-}
-
-void BasicSc2Bot::OnGameEnd() {
-  const auto &results = Observation()->GetResults();
-  for (const auto &result : results) {
-    if (result.player_id == Observation()->GetPlayerID()) {
-      switch (result.result) {
-      case sc2::GameResult::Win:
-        std::cout << "Game ended: Victory!" << std::endl;
-        break;
-      case sc2::GameResult::Loss:
-        std::cout << "Game ended: Defeat." << std::endl;
-        break;
-      case sc2::GameResult::Tie:
-        std::cout << "Game ended: Tie." << std::endl;
-        break;
-      default:
-        std::cout << "Game ended: Unknown result." << std::endl;
-        break;
-      }
-    }
   }
 }
 
@@ -793,13 +735,10 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       if (observation->GetMinerals() >= 150 &&
           observation->GetVespene() >= 100) {
         Actions()->UnitCommand(initial_hatchery, ABILITY_ID::MORPH_LAIR);
-        std::cout << "Upgrading initial hatchery to Lair." << std::endl;
         return true;
       } else {
-        std::cout << "Insufficient resources to morph Lair." << std::endl;
       }
     } else {
-      std::cout << "Initial hatchery not ready for Lair upgrade." << std::endl;
     }
     return false;
   }
@@ -901,13 +840,10 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     case UNIT_TYPEID::ZERG_HATCHERY: {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 300) {
-        std::cout << "building hatchery..." << std::endl;
         // locate the next nearest mineral group
         const Unit *mineral_cluster_a = FindNearestMineralPatch(drone->pos);
         const Unit *mineral_cluster_b =
             findNextNearestMineralGroup(mineral_cluster_a);
-        std::cout << "located mineral cluster: " << mineral_cluster_b->pos.x
-                  << " , " << mineral_cluster_b->pos.y << std::endl;
         // get map center
         Point2D map_center = getMapCenter();
         // get vector from cluster center to map center, normalize
@@ -915,22 +851,15 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         Point2D direction_vector(
             getDirectionVector(mineral_cluster_b->pos, map_center));
         // create point for hatchery
-        std::cout << "direction vector: " << direction_vector.x << " , "
-                  << direction_vector.y << std::endl;
         Point2D hatchery_location(
             mineral_cluster_b->pos.x + (direction_vector.x * 3.0f),
             mineral_cluster_b->pos.y + (direction_vector.y * 3.0f));
-        std::cout << "calculated hatchery point: " << hatchery_location.x
-                  << " , " << hatchery_location.y << std::endl;
         // find build position
         Point2D build_position =
             findBuildPositionNearMineral(hatchery_location);
-        std::cout << "build position: " << build_position.x << " , "
-                  << build_position.y << std::endl;
         if (build_position.x != 0.0f || build_position.y != 0.0f) {
           Actions()->UnitCommand(drone, ABILITY_ID::BUILD_HATCHERY,
                                  build_position);
-          std::cout << "hatchery built." << std::endl;
           return true;
         }
       }
@@ -989,10 +918,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             FindPlacementLocation(build_ability, drone->pos);
         if (build_position != Point2D(0.0f, 0.0f)) {
           Actions()->UnitCommand(drone, build_ability, build_position);
-          std::cout << "Building Roach Warren" << std::endl;
           return true;
         } else {
-          std::cout << "Can't find location for Roach Warren" << std::endl;
         }
       }
       break;
@@ -1120,7 +1047,6 @@ BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
    * mineral patches
    */
   const Unit *mineral_loc_b = FindNearestMineralPatch(mineral_loc_a->pos);
-  std::cout << "differences: ";
   for (int i = 0; i < 10; i++) {
     // compare differences
     if (getVectorDifferenceMagnitude(mineral_loc_a->pos, mineral_loc_b->pos) >
@@ -1133,7 +1059,6 @@ BasicSc2Bot::findNextNearestMineralGroup(const Unit *mineral_loc_a) {
     mineral_loc_a = mineral_loc_b;
     mineral_loc_b = FindNearestMineralPatch(mineral_loc_b->pos);
   }
-  std::cout << std::endl;
   return mineral_loc_b; // in case of next group not found within 10
                         // minerals, return 10th mineral patch
 }
@@ -1145,7 +1070,6 @@ double BasicSc2Bot::getVectorDifferenceMagnitude(Point2D vec_a, Point2D vec_b) {
   Point2D difference_vector(vec_a.x - vec_b.x, vec_a.y - vec_b.y);
   double diff = sqrt(difference_vector.x * difference_vector.x +
                      difference_vector.y * difference_vector.y);
-  std::cout << diff << ", ";
   return diff;
 }
 Point2D BasicSc2Bot::getDirectionVector(Point2D vec_a, Point2D vec_b) {
@@ -1165,8 +1089,6 @@ Point2D BasicSc2Bot::getDirectionVector(Point2D vec_a, Point2D vec_b) {
 
 bool BasicSc2Bot::inRallyRange(const Point2D &pos, const Point2D &rally,
                                float range) {
-  // std::cout << "     pos.x: " << pos.x << "pos.y: " << pos.y
-  //           << "rally.x: " << rally.x << "rally.y: " << rally.y << " ";
   if (abs(pos.x - rally.x) < range && abs(pos.y - rally.y) < range) {
     return true;
   } else {
@@ -1232,7 +1154,6 @@ void BasicSc2Bot::HandleQueenInjects() {
         if (closest_hatchery) {
           Actions()->UnitCommand(queen, ABILITY_ID::EFFECT_INJECTLARVA,
                                  closest_hatchery);
-          std::cout << "Queen Injecting!" << std::endl;
         }
       }
     }
@@ -1249,7 +1170,6 @@ void BasicSc2Bot::AssignDronesToExtractor(const Unit *extractor) {
   while (drone_count < 3) {
     const Unit *drone = findAvailableDrone();
     if (!drone) {
-      std::cout << "No more available drones to assign." << std::endl;
       break;
     }
     // Checks if drone is a valid unit and whether the drone's tag is
@@ -1260,7 +1180,6 @@ void BasicSc2Bot::AssignDronesToExtractor(const Unit *extractor) {
       // Adding Tag to global set so findAvailableDrone() doesn't grab
       // gas harvesting drones.
       gas_harvesting_drones.insert(drone->tag);
-      std::cout << "Drone assigned to extractor!" << std::endl;
       ++drone_count;
     }
   }
@@ -1340,9 +1259,6 @@ void BasicSc2Bot::BalanceWorkers() {
         if (mineral_patch) {
           Actions()->UnitCommand(drone, ABILITY_ID::HARVEST_GATHER,
                                  mineral_patch);
-          std::cout << "Transferring drone to under saturated "
-                       "hatchery!!"
-                    << std::endl;
         }
       }
     }
