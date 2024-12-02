@@ -147,7 +147,7 @@ static void RunBot(int argc, char *argv[], sc2::Race race) {
         {CreateParticipant(race, Agent),
          CreateComputer(Options.ComputerRace, Options.ComputerDifficulty)});
     coordinator.LoadSettings(1, argv);
-    coordinator.SetRealtime(false);
+    coordinator.SetRealtime(true);
     coordinator.SetStepSize(1);
     coordinator.LaunchStarcraft();
     coordinator.StartGame(Options.Map);
@@ -165,13 +165,6 @@ static void RunBot(int argc, char *argv[], sc2::Race race) {
     std::cout << " Successfully joined game" << std::endl;
   }
   coordinator.SetTimeoutMS(10000);
-  auto startTime = std::chrono::high_resolution_clock::now();
   while (coordinator.Update()) {
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsedSeconds = currentTime - startTime;
-    if (elapsedSeconds.count() >= 300) {
-      std::cout << "TIMEOUT";
-      break;
-    }
   }
 }
