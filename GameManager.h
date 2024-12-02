@@ -26,13 +26,9 @@ public:
   // command center)
   std::vector<EnemyBuilding> enemyBaseLocations;
 
-  // array of scouts
-  std::vector<const Unit *> scouts;
-
   // location points
   Point2D rally_point;
   Point2D overlord_rally_point;
-  Point2D scouting_location;
 };
 
 #endif
