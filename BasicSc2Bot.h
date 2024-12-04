@@ -20,7 +20,7 @@ using namespace sc2;
 class BasicSc2Bot : public Agent {
 public:
   BasicSc2Bot() : group_size(8), additional_drones(12){};
-  virtual void OnGameStart();
+  // virtual void OnGameStart();
   virtual void OnStep();
   virtual void OnUnitIdle(const Unit *unit) final;
   virtual void OnBuildingConstructionComplete(const sc2::Unit *unit);
@@ -96,6 +96,16 @@ private:
                                   // point on the map.
   std::unordered_map<Tag, GameManager::EnemyBuilding>
       roach_attack_targets; // Map from Roach Tag to Building Tag
+  // int step_counter = 0;
+  bool initialized = false;
+  void ongamestart();
+  void InitializeMineralPatches();
+  void InitializeStartingHatchery();
+  void InitializeBuildOrderAndScouts();
+  bool initialized_mineral_patches = false;
+  bool initialized_hatchery = false;
+  bool initialized_build_order = false;
+  bool roach_warren_built = false;
 };
 
 #endif
