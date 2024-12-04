@@ -34,7 +34,7 @@ private:
   const Point2D getValidRallyPoint(const Point2D &base_position,
                                    QueryInterface *query,
                                    float max_radius = 15.0f, float step = 2.0f);
-  Point2D FindPlacementLocation(AbilityID ability, const Point2D &near_point);
+  Point2D FindPlacementLocation(AbilityID ability, const Point2D &near_point, const Unit* unit);
   const Unit *findIdleLarva();
   const Unit *findIdleDrone();
   const Unit *findAvailableDrone();
@@ -97,8 +97,8 @@ private:
   std::unordered_map<Tag, GameManager::EnemyBuilding>
       roach_attack_targets; // Map from Roach Tag to Building Tag
   // int step_counter = 0;
+  // All below variables and functions are specifically to fix issues on the server and are unnecessary when running the bot locally.
   bool initialized = false;
-  void ongamestart();
   void InitializeMineralPatches();
   void InitializeStartingHatchery();
   void InitializeBuildOrderAndScouts();
@@ -106,6 +106,8 @@ private:
   bool initialized_hatchery = false;
   bool initialized_build_order = false;
   bool roach_warren_built = false;
+  Tag first_queen_hatchery; // Holds the location of the first hatchery a queen is spawned at so we can avoid both spawning on the same hatchery
+  std::map<Tag, BuildOrderItem> drone_build_map; // Holds mapping of drones to structure they're assigned to build to ensure it is built
 };
 
 #endif

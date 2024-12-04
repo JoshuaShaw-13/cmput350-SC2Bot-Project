@@ -148,6 +148,9 @@ void BasicSc2Bot::InitializeStartingHatchery() {
 void BasicSc2Bot::InitializeBuildOrderAndScouts() {
   const ObservationInterface *observation = Observation();
   scout_locations = observation->GetGameInfo().enemy_start_locations;
+  for (int i = 0; i < scout_locations.size(); ++i) {
+    std::cout << "Scout location for overlord: " << scout_locations.at(i).x << ", " << scout_locations.at(i).y << std::endl;
+  }
 
    // Build drones if not at the given army cap for next item
   build_order.push(BuildOrderItem(
@@ -239,12 +242,12 @@ void BasicSc2Bot::OnStep() {
           initialized = true;
         }
     }
-  const Units roach_warrens = observation->GetUnits(
-        Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_ROACHWARREN));
-  if (roach_warren_built && roach_warrens.empty()){
-    tryBuild(BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN));
-    std::cout << "Reattempting to build Roach Warren." << std::endl;
-  }
+  // const Units roach_warrens = observation->GetUnits(
+  //       Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_ROACHWARREN));
+  // if (roach_warren_built && roach_warrens.empty()){
+  //   tryBuild(BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN));
+  //   std::cout << "Reattempting to build Roach Warren." << std::endl;
+  // }
   int current_supply = observation->GetFoodUsed();
   int supply_cap = observation->GetFoodCap();
   // Change it to build at cap for example build drones till 13
@@ -751,6 +754,12 @@ const Unit *BasicSc2Bot::findAvailableDrone() {
     if (gas_harvesting_drones.find(drone->tag) != gas_harvesting_drones.end()) {
       continue;
     }
+
+    // Skip drones assigned to building
+    if (drone_build_map.find(drone->tag) != drone_build_map.end()) {
+            continue;
+        }
+        
     // Prioritize idle drones
     if (drone->orders.empty()) {
       return drone;
@@ -867,8 +876,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
   // Check if the item is a MORPH_LAIR upgrade to handle separately.
   if (buildItem.ability == ABILITY_ID::MORPH_LAIR) {
     const Unit *initial_hatchery = observation->GetUnit(initial_hatchery_tag);
-    if (initial_hatchery && initial_hatchery->build_progress == 1.0f &&
-        initial_hatchery->orders.empty()) {
+    if (initial_hatchery && initial_hatchery->build_progress == 1.0f) {
       if (observation->GetMinerals() >= 150 &&
           observation->GetVespene() >= 100) {
         Actions()->UnitCommand(initial_hatchery, ABILITY_ID::MORPH_LAIR);
@@ -940,6 +948,12 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       if (!spawning_pool_done) {
         return false;
       }
+      // Check that we have enough supply to build zergling.
+      int current_supply = observation->GetFoodUsed();
+      int supply_cap = observation->GetFoodCap();
+      if (current_supply + 1 > supply_cap) {
+        return false;
+      }
       larva = findAvailableLarva();
       if (larva && observation->GetMinerals() >= 50) {
         Actions()->UnitCommand(larva, ABILITY_ID::TRAIN_ZERGLING);
@@ -962,9 +976,11 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         return false;
       }
       Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
-      std::cout << "Number of Hatcheries: " << hatcheries.size() << std::endl;
       for (const auto &hatchery : observation->GetUnits(
                Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))) {
+        if (hatchery->tag == first_queen_hatchery) {
+          continue;
+        }
         if (hatchery->build_progress == 1.0f && hatchery->orders.empty() &&
             observation->GetMinerals() >= 150) {
           bool queen_exists = false;
@@ -972,13 +988,13 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
                 if (unit->unit_type == UNIT_TYPEID::ZERG_QUEEN) {
                     if (DistanceSquared2D(unit->pos, hatchery->pos) < 10.0f) {
                         queen_exists = true;
-                        std::cout << "Found a queen near a hatchery" << std::endl;
                         break;
                     }
                 }
             }
           if (!queen_exists) {
             Actions()->UnitCommand(hatchery, ABILITY_ID::TRAIN_QUEEN);
+            first_queen_hatchery = hatchery->tag;
             std::cout << "Building at Hatchery with Tag: " << hatchery->tag << std::endl;
             return true;
           } else {
@@ -1015,6 +1031,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         if (build_position.x != 0.0f || build_position.y != 0.0f) {
           Actions()->UnitCommand(drone, ABILITY_ID::BUILD_HATCHERY,
                                  build_position);
+          drone_build_map[drone->tag] = buildItem;
           return true;
         }
       }
@@ -1047,6 +1064,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           if (nearest_vespene) {
             Actions()->UnitCommand(drone, ABILITY_ID::BUILD_EXTRACTOR,
                                    nearest_vespene);
+            drone_build_map[drone->tag] = buildItem;
             ++built_extractors;
             return true;
           }
@@ -1058,10 +1076,16 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 200) {
         Point2D build_position =
-            FindPlacementLocation(ABILITY_ID::BUILD_SPAWNINGPOOL, drone->pos);
-        Actions()->UnitCommand(drone, ABILITY_ID::BUILD_SPAWNINGPOOL,
+            FindPlacementLocation(ABILITY_ID::BUILD_SPAWNINGPOOL, drone->pos, drone);
+        if (build_position != Point2D(0.0f, 0.0f)) {
+          Actions()->UnitCommand(drone, ABILITY_ID::BUILD_SPAWNINGPOOL,
                                build_position);
-        return true;
+          drone_build_map[drone->tag] = buildItem;
+          return true;
+        } else {
+          return false;
+        }
+        
       }
       break;
     }
@@ -1070,12 +1094,13 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       if (drone && observation->GetMinerals() >= 150) {
         AbilityID build_ability = ABILITY_ID::BUILD_ROACHWARREN;
         Point2D build_position =
-            FindPlacementLocation(build_ability, drone->pos);
+            FindPlacementLocation(build_ability, drone->pos, drone);
         if (build_position != Point2D(0.0f, 0.0f)) {
           Actions()->UnitCommand(drone, build_ability, build_position);
-          roach_warren_built = true;
+          roach_warren_built = true; // Tag to retry building if it's not building properly (Issue specific to server)
           return true;
         } else {
+          std::cout << "Cant find a build location for roach warren" << std::endl;
         }
       }
       break;
@@ -1085,7 +1110,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       if (drone && observation->GetMinerals() >= 75) {
         AbilityID build_ability = ABILITY_ID::BUILD_SPORECRAWLER;
         Point2D build_position =
-            FindPlacementLocation(build_ability, drone->pos);
+            FindPlacementLocation(build_ability, drone->pos, drone);
         if (build_position != Point2D(0.0f, 0.0f)) {
           Actions()->UnitCommand(drone, build_ability, build_position);
           return true;
@@ -1253,7 +1278,8 @@ bool BasicSc2Bot::inRallyRange(const Point2D &pos, const Point2D &rally,
 }
 
 Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability,
-                                           const Point2D &near_point) {
+                                           const Point2D &near_point,
+                                           const Unit* unit) {
   // Try random points around the near_point
   for (int i = 0; i < 20; ++i) { // Increased iterations for better chances
     float rx = GetRandomScalar() * 10.0f - 5.0f; // Center around near_point
@@ -1261,7 +1287,7 @@ Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability,
     Point2D test_point = near_point + Point2D(rx, ry);
 
     // Check if the position is valid for building
-    if (Query()->Placement(ability, test_point) &&
+    if (Query()->Placement(ability, test_point, unit) &&
         Observation()->HasCreep(test_point)) {
       return test_point;
     }

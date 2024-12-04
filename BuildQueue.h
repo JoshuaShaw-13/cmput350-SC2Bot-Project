@@ -15,7 +15,9 @@ struct BuildOrderItem{
     sc2::UNIT_TYPEID unit_type;   // BuildOrderItem or structure to build
     sc2::ABILITY_ID ability;      // Ability to use (for upgrades or morphs)
     bool is_unit;                 // True if BuildOrderItem_type is valid, false if ability is valid
-
+    //Default constructor
+    BuildOrderItem() 
+    : supply(0), unit_type(sc2::UNIT_TYPEID::INVALID), ability(sc2::ABILITY_ID::INVALID), is_unit(false) {}
     // Constructor for BuildOrderItems and structures
     BuildOrderItem(int s, sc2::UNIT_TYPEID u)
         : supply(s), unit_type(u), ability(sc2::ABILITY_ID::INVALID), is_unit(true) {}
