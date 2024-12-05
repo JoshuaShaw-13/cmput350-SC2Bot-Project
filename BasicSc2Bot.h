@@ -98,16 +98,25 @@ private:
       roach_attack_targets; // Map from Roach Tag to Building Tag
   // int step_counter = 0;
   // All below variables and functions are specifically to fix issues on the server and are unnecessary when running the bot locally.
+  struct DroneBuildTask {
+    BuildOrderItem build_item;
+    uint64_t assigned_game_loop; // The game loop when the build command was issued
+
+    DroneBuildTask(const BuildOrderItem& item, uint64_t game_loop)
+        : build_item(item), assigned_game_loop(game_loop) {}
+    DroneBuildTask() : build_item(), assigned_game_loop(0) {}
+};
   bool initialized = false;
-  void InitializeMineralPatches();
-  void InitializeStartingHatchery();
-  void InitializeBuildOrderAndScouts();
+  void InitializeMineralPatches(); // OnGameStart Part 1
+  void InitializeStartingHatchery(); // OnGameStart Part 2
+  void InitializeBuildOrderAndScouts(); // OnGameStart Part 3
+  bool IsAreaOnCreep(const Point2D &center, float building_radius);
   bool initialized_mineral_patches = false;
   bool initialized_hatchery = false;
   bool initialized_build_order = false;
   bool roach_warren_built = false;
   Tag first_queen_hatchery; // Holds the location of the first hatchery a queen is spawned at so we can avoid both spawning on the same hatchery
-  std::map<Tag, BuildOrderItem> drone_build_map; // Holds mapping of drones to structure they're assigned to build to ensure it is built
+  std::map<Tag, DroneBuildTask> drone_build_map; // Holds mapping of drones to structure they're assigned to build to ensure it is built
 };
 
 #endif

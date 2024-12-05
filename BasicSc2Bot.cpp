@@ -242,12 +242,13 @@ void BasicSc2Bot::OnStep() {
           initialized = true;
         }
     }
-  // const Units roach_warrens = observation->GetUnits(
-  //       Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_ROACHWARREN));
-  // if (roach_warren_built && roach_warrens.empty()){
-  //   tryBuild(BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN));
-  //   std::cout << "Reattempting to build Roach Warren." << std::endl;
-  // }
+  // In case enemies destroy our roach warren, so we can continue attacking.
+  const Units roach_warrens = observation->GetUnits(
+        Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_ROACHWARREN));
+  if (roach_warren_built && roach_warrens.empty()){
+    tryBuild(BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN));
+    std::cout << "Reattempting to build Roach Warren." << std::endl;
+  }
   int current_supply = observation->GetFoodUsed();
   int supply_cap = observation->GetFoodCap();
   // Change it to build at cap for example build drones till 13
@@ -419,6 +420,62 @@ void BasicSc2Bot::OnStep() {
   // Balance drones among hatcheries
   BalanceWorkers();
 
+  // Check Drones assigned to build structures
+  for (auto it = drone_build_map.begin(); it != drone_build_map.end(); ) {
+    Tag drone_tag = it->first;
+    BuildOrderItem build_item = it->second.build_item;
+    uint64_t assigned_game_loop = it->second.assigned_game_loop;
+    uint64_t current_game_loop = observation->GetGameLoop();
+    const Unit *drone = observation->GetUnit(drone_tag);
+
+    // Don't wanna check too soon as the order may not be fully processed yet.
+    if (current_game_loop - assigned_game_loop < 20) {
+      ++it;
+      continue;
+    }
+    // Checking if building is currently under construction 
+    bool building_exists = false;
+    Units structures = observation->GetUnits(Unit::Alliance::Self, IsUnit(build_item.unit_type));
+    for (const auto &structure : structures) {
+        if (structure->build_progress > 0.0f && structure->build_progress < 1.0f) {
+            building_exists = true;
+            break;
+        }
+    }
+
+    if (building_exists) {
+        std::cout << UnitTypeToName(build_item.unit_type) << " is already under construction or built." << std::endl;
+        it = drone_build_map.erase(it);
+        continue;
+    }
+
+    // If drone is dead, skip it. (Most likely dead because it's building the structure)
+    if (!drone) {
+      it = drone_build_map.erase(it);
+      continue;
+    }
+
+    const sc2::UnitTypeData unit_data = observation->GetUnitTypeData().at(static_cast<uint32_t>(build_item.unit_type));
+    // Check if the Drone has the correct order
+    bool has_correct_order = false;
+    for (const auto &order : drone->orders) {
+      if (order.ability_id == unit_data.ability_id) {
+        has_correct_order = true;
+        break;
+      }
+    }
+
+    if (!has_correct_order) {
+      // Drone is not following the correct order
+      std::cout << "Drone " << drone_tag << " is not building "
+                << UnitTypeToName(build_item.unit_type) << ". Requeueing." << std::endl;
+      build_order.push_front(build_item);
+      it = drone_build_map.erase(it);
+      continue;
+    }
+    ++it;
+  }
+
   return;
 }
 
@@ -426,6 +483,29 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   state.idleUnits.push_back(unit);
   switch (unit->unit_type.ToType()) {
   case UNIT_TYPEID::ZERG_DRONE: {
+     // Check if the Drone was assigned to build something
+        auto it = drone_build_map.find(unit->tag);
+        if (it != drone_build_map.end()) {
+            BuildOrderItem build_item = it->second.build_item;
+            build_order.push_front(build_item);
+            std::cout << "Re-queued building: " << UnitTypeToName(build_item.unit_type) << std::endl;
+            
+            // Check if the structure is built or under construction
+            // bool structure_exists = false;
+            // Units structures = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(build_item.unit_type));
+            // for (const auto &structure : structures) {
+            //     if (structure->build_progress > 0.0f) {
+            //         structure_exists = true;
+            //         break;
+            //     }
+            // }
+
+            // if (!structure_exists) {
+                // build_order.push_front(build_item);
+                // std::cout << "Re-queued building: " << UnitTypeToName(build_item.unit_type) << std::endl;
+            // }
+            drone_build_map.erase(it);
+        }
     gas_harvesting_drones.erase(unit->tag);
     Units extractors = Observation()->GetUnits(
         Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_EXTRACTOR));
@@ -552,6 +632,27 @@ void BasicSc2Bot::OnBuildingConstructionComplete(const Unit *unit) {
 void BasicSc2Bot::OnUnitDestroyed(const Unit *unit) {
   if (unit->unit_type == UNIT_TYPEID::ZERG_DRONE &&
       unit->alliance == sc2::Unit::Alliance::Self) {
+      // Check if the Drone was assigned to build something
+      auto it = drone_build_map.find(unit->tag);
+      if (it != drone_build_map.end()) {
+        BuildOrderItem build_item = it->second.build_item;
+        std::cout << "Drone consumed while building: " << UnitTypeToName(build_item.unit_type) << std::endl;
+        // Check if the structure is built or under construction
+        bool structure_exists = false;
+        Units structures = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(build_item.unit_type));
+        for (const auto &structure : structures) {
+            if (structure->build_progress > 0.0f) {
+                structure_exists = true;
+                break;
+            }
+        }
+
+        if (!structure_exists) {
+            build_order.push_front(build_item);
+            std::cout << "Re-queued building: " << UnitTypeToName(build_item.unit_type) << std::endl;
+        }
+        drone_build_map.erase(it);
+      }
     gas_harvesting_drones.erase(unit->tag);
   } else if (unit->unit_type == UNIT_TYPEID::ZERG_OVERLORD &&
              unit->alliance == sc2::Unit::Alliance::Self) {
@@ -1031,7 +1132,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         if (build_position.x != 0.0f || build_position.y != 0.0f) {
           Actions()->UnitCommand(drone, ABILITY_ID::BUILD_HATCHERY,
                                  build_position);
-          drone_build_map[drone->tag] = buildItem;
+          drone_build_map[drone->tag] = DroneBuildTask(buildItem, observation->GetGameLoop());
           return true;
         }
       }
@@ -1064,7 +1165,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           if (nearest_vespene) {
             Actions()->UnitCommand(drone, ABILITY_ID::BUILD_EXTRACTOR,
                                    nearest_vespene);
-            drone_build_map[drone->tag] = buildItem;
+            drone_build_map[drone->tag] = DroneBuildTask(buildItem, observation->GetGameLoop());
             ++built_extractors;
             return true;
           }
@@ -1080,7 +1181,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         if (build_position != Point2D(0.0f, 0.0f)) {
           Actions()->UnitCommand(drone, ABILITY_ID::BUILD_SPAWNINGPOOL,
                                build_position);
-          drone_build_map[drone->tag] = buildItem;
+          drone_build_map[drone->tag] = DroneBuildTask(buildItem, observation->GetGameLoop());
           return true;
         } else {
           return false;
@@ -1098,6 +1199,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         if (build_position != Point2D(0.0f, 0.0f)) {
           Actions()->UnitCommand(drone, build_ability, build_position);
           roach_warren_built = true; // Tag to retry building if it's not building properly (Issue specific to server)
+          drone_build_map[drone->tag] = DroneBuildTask(buildItem, observation->GetGameLoop());
           return true;
         } else {
           std::cout << "Cant find a build location for roach warren" << std::endl;
@@ -1113,6 +1215,9 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             FindPlacementLocation(build_ability, drone->pos, drone);
         if (build_position != Point2D(0.0f, 0.0f)) {
           Actions()->UnitCommand(drone, build_ability, build_position);
+          drone_build_map[drone->tag] = DroneBuildTask(buildItem, observation->GetGameLoop());
+          std::cout << "Issued build command for: " << UnitTypeToName(buildItem.unit_type)
+                      << " at position (" << build_position.x << ", " << build_position.y << ")" << std::endl;
           return true;
         }
       }
@@ -1157,15 +1262,6 @@ bool BasicSc2Bot::isArmyReady() {
   return roach_count >= optRoach && zergling_count >= optZergling;
 }
 
-// void BasicSc2Bot::launchAttack(const Point2D &target) {
-//   for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self))
-//   {
-//     if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING ||
-//         unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
-//       Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target);
-//     }
-//   }
-// }
 void BasicSc2Bot::launchAttack(
     const Units &attack_group,
     const GameManager::EnemyBuilding &target_building) {
@@ -1277,23 +1373,47 @@ bool BasicSc2Bot::inRallyRange(const Point2D &pos, const Point2D &rally,
   }
 }
 
+// Samples from a circle around the center point to check if there is creep every where
+bool BasicSc2Bot::IsAreaOnCreep(const Point2D &center, float building_radius) {
+    int num_samples = 20;
+    float angle_step = 2 * M_PI / num_samples;
+
+    for (int i = 0; i < num_samples; ++i) {
+        float angle = i * angle_step;
+        float x_offset = building_radius * cos(angle);
+        float y_offset = building_radius * sin(angle);
+        Point2D sample_point = center + Point2D(x_offset, y_offset);
+
+        if (!Observation()->HasCreep(sample_point)) {
+            return false; // Found a point without creep
+        }
+    }
+    return true; // All sampled points have creep
+}
+
 Point2D BasicSc2Bot::FindPlacementLocation(AbilityID ability,
                                            const Point2D &near_point,
                                            const Unit* unit) {
-  // Try random points around the near_point
-  for (int i = 0; i < 20; ++i) { // Increased iterations for better chances
-    float rx = GetRandomScalar() * 10.0f - 5.0f; // Center around near_point
-    float ry = GetRandomScalar() * 10.0f - 5.0f;
-    Point2D test_point = near_point + Point2D(rx, ry);
+    float building_radius = 1.5f;
 
-    // Check if the position is valid for building
-    if (Query()->Placement(ability, test_point, unit) &&
-        Observation()->HasCreep(test_point)) {
-      return test_point;
+    for (int i = 0; i < 30; ++i) {
+        float rx = GetRandomScalar() * 10.0f - 5.0f;
+        float ry = GetRandomScalar() * 10.0f - 5.0f;
+        Point2D test_point = near_point + Point2D(rx, ry);
+
+        // Check pathing
+        float path_distance = Query()->PathingDistance(near_point, test_point);
+        if (path_distance < 0.0f) {
+            continue; // Cannot reach the location
+        }
+
+        // Check placement and creep coverage
+        if (Query()->Placement(ability, test_point) &&
+            IsAreaOnCreep(test_point, building_radius)) {
+            return test_point;
+        }
     }
-  }
-  // No valid position found
-  return Point2D(0.0f, 0.0f); // Indicates failure
+    return Point2D(0.0f, 0.0f); // Indicates failure
 }
 
 // To be called onStep() to make sure queens are injecting as soon as they
