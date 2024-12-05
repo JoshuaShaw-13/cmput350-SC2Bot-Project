@@ -242,13 +242,6 @@ void BasicSc2Bot::OnStep() {
           initialized = true;
         }
     }
-  // In case enemies destroy our roach warren, so we can continue attacking.
-  const Units roach_warrens = observation->GetUnits(
-        Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_ROACHWARREN));
-  if (roach_warren_built && roach_warrens.empty()){
-    tryBuild(BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN));
-    std::cout << "Reattempting to build Roach Warren." << std::endl;
-  }
   int current_supply = observation->GetFoodUsed();
   int supply_cap = observation->GetFoodCap();
   // Change it to build at cap for example build drones till 13
@@ -429,7 +422,7 @@ void BasicSc2Bot::OnStep() {
     const Unit *drone = observation->GetUnit(drone_tag);
 
     // Don't wanna check too soon as the order may not be fully processed yet.
-    if (current_game_loop - assigned_game_loop < 20) {
+    if (current_game_loop - assigned_game_loop < 30) {
       ++it;
       continue;
     }
