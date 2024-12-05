@@ -95,3 +95,8 @@ You can find the build target under the `bin` directory. For example,
 ```
 
 will result in the bot playing against the zerg built-in AI on hard difficulty on the map CactusValleyLE.
+
+
+# Using the LadderServer
+
+Use the default commands as there is no additional arguments that our bot takes
