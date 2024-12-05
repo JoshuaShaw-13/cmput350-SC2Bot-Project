@@ -19,95 +19,6 @@ using namespace sc2;
 GameManager state;
 int MAX_SCOUTS_PER_QUAD = 1;
 
-// void BasicSc2Bot::OnGameStart() {
-//   const ObservationInterface *observation = Observation();
-//   // Initialize the unscouted mineral patches vector
-//   Units mineral_patches = Observation()->GetUnits(
-//       Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
-//   for (const auto &mineral_patch : mineral_patches) {
-//     unscouted_mineral_patches.push_back(mineral_patch->pos);
-//   }
-
-//   // Initialize info about our starting hatchery.
-//   const Unit *start_base =
-//       observation
-//           ->GetUnits(Unit::Alliance::Self,
-//           IsUnit(UNIT_TYPEID::ZERG_HATCHERY)) .front();
-//   initial_hatchery_tag = start_base->tag;
-//   scout_locations = observation->GetGameInfo().enemy_start_locations;
-
-//   // Build drones if not at the given army cap for next item
-//   build_order.push(BuildOrderItem(
-//       13, UNIT_TYPEID::ZERG_OVERLORD)); // At 13 cap, build an Overlord
-//   build_order.push(BuildOrderItem(
-//       16, UNIT_TYPEID::ZERG_HATCHERY)); // At 16 cap, build a Hatchery
-//   build_order.push(BuildOrderItem(
-//       18, UNIT_TYPEID::ZERG_EXTRACTOR)); // At 18 cap, build an Extractor
-//   build_order.push(BuildOrderItem(
-//       17,
-//       UNIT_TYPEID::ZERG_SPAWNINGPOOL)); // At 17 cap, build a Spawning Pool
-//   build_order.push(BuildOrderItem(
-//       20, UNIT_TYPEID::ZERG_OVERLORD)); // At 20 cap, build an Overlord
-//   build_order.push(
-//       BuildOrderItem(0, UNIT_TYPEID::ZERG_QUEEN)); // Build 2 Queens
-//   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_QUEEN));
-//   build_order.push(
-//       BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING)); // Build 4 Zerglings
-//   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
-//   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
-//   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_ZERGLING));
-//   build_order.push(BuildOrderItem(
-//       32, UNIT_TYPEID::ZERG_OVERLORD)); // At 32 cap, build an Overlord
-//   build_order.push(
-//       BuildOrderItem(0, ABILITY_ID::MORPH_LAIR)); // Upgrade Hatchery to Lair
-//   build_order.push(BuildOrderItem(
-//       36, UNIT_TYPEID::ZERG_OVERLORD)); // At 36 cap, build an Overlord
-//   build_order.push(
-//       BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN)); // Build a Roach
-//       Warren
-//   build_order.push(BuildOrderItem(
-//       0, UNIT_TYPEID::ZERG_EXTRACTOR)); // Build 2 more Extractors
-//   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_EXTRACTOR));
-//   build_order.push(BuildOrderItem(
-//       0, UNIT_TYPEID::ZERG_SPORECRAWLER)); // Build 2 Spore Crawlers
-//   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_SPORECRAWLER));
-
-//   state.rally_point =
-//       getValidRallyPoint(observation->GetStartLocation(), Query());
-
-//   // find overlord rally location depending on base start location
-//   Point2D start_location = start_base->pos;
-//   int map_width = observation->GetGameInfo().width;
-//   int map_height = observation->GetGameInfo().height;
-//   int x_half = map_width / 2;
-//   int y_half = map_height / 2;
-//   if (start_location.x > x_half) {
-//     state.overlord_rally_point.x = map_width - 1;
-//   }
-//   if (start_location.y > y_half) {
-//     state.overlord_rally_point.y = map_height - 1;
-//   }
-
-//   Point2D map_center = Point2D(map_width / 2.0f, map_height / 2.0f);
-//   // add all resource points as scouting locations split up into 4 quadrants
-//   for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Neutral)) {
-//     if (unit->unit_type == UNIT_TYPEID::NEUTRAL_MINERALFIELD ||
-//         unit->unit_type == UNIT_TYPEID::NEUTRAL_VESPENEGEYSER) {
-//       Point2D pos = unit->pos;
-
-//       if (pos.x >= map_center.x && pos.y > map_center.y) {
-//         scout_loc_north_east.push_back(pos);
-//       } else if (pos.x < map_center.x && pos.y > map_center.y) {
-//         scout_loc_north_west.push_back(pos);
-//       } else if (pos.x >= map_center.x && pos.y <= map_center.y) {
-//         scout_loc_south_east.push_back(pos);
-//       } else if (pos.x < map_center.x && pos.y <= map_center.y) {
-//         scout_loc_south_west.push_back(pos);
-//       }
-//     }
-//   }
-// }
-
 void BasicSc2Bot::InitializeMineralPatches() {
   const ObservationInterface *observation = Observation();
   Units mineral_patches = observation->GetUnits(
@@ -490,20 +401,6 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
             build_order.push_front(build_item);
             std::cout << "Re-queued building: " << UnitTypeToName(build_item.unit_type) << std::endl;
             
-            // Check if the structure is built or under construction
-            // bool structure_exists = false;
-            // Units structures = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(build_item.unit_type));
-            // for (const auto &structure : structures) {
-            //     if (structure->build_progress > 0.0f) {
-            //         structure_exists = true;
-            //         break;
-            //     }
-            // }
-
-            // if (!structure_exists) {
-                // build_order.push_front(build_item);
-                // std::cout << "Re-queued building: " << UnitTypeToName(build_item.unit_type) << std::endl;
-            // }
             drone_build_map.erase(it);
         }
     gas_harvesting_drones.erase(unit->tag);

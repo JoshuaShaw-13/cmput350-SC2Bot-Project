@@ -1,7 +1,6 @@
 #ifndef BASIC_SC2_BOT_H_
 #define BASIC_SC2_BOT_H_
 
-#include "AttackBaseQueue.h"
 #include "BuildQueue.h"
 #include "GameManager.h"
 #include "sc2api/sc2_api.h"
@@ -72,8 +71,6 @@ private:
   std::set<const Unit *> vespene_locations;
   std::set<Tag> gas_harvesting_drones;
   Tag initial_hatchery_tag; // Add this line
-  AttackBaseQueue
-      enemy_bases; // Queue containing locations we identify as enemy bases
   int group_size;  // Number of roaches to send per wave
   std::vector<Tag>
       current_roach_group; // Roaches in the current group to be sent to attack
