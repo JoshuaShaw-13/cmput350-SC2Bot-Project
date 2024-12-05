@@ -461,7 +461,7 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
   case UNIT_TYPEID::ZERG_OVERLORD: {
     if (!scout_locations.empty()) {
       Actions()->UnitCommand(unit, ABILITY_ID::SMART,
-                             scout_locations[rand() % 3]);
+                             scout_locations[rand() % scout_locations.size()]);
     } else if (!inRallyRange(unit->pos, state.overlord_rally_point, 25.0)) {
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
                              state.overlord_rally_point);
