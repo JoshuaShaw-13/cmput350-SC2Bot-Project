@@ -55,6 +55,8 @@ export CXX=/usr/bin/clang++
 
 :: Generate a Makefile
 :: Use 'cmake -DCMAKE_BUILD_TYPE=Debug ../' if debug info is needed
+:: Note: May instead need to use cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ../ for intellisense
+:: - Then create symlink ln -s build/compile_commands.json compile_commands.json in project root
 $ cmake -DCMAKE_BUILD_TYPE=Release ../
 
 :: Build
