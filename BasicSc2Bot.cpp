@@ -31,8 +31,8 @@ int MAX_SCOUTS_PER_QUAD = 1;
 //   // Initialize info about our starting hatchery.
 //   const Unit *start_base =
 //       observation
-//           ->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))
-//           .front();
+//           ->GetUnits(Unit::Alliance::Self,
+//           IsUnit(UNIT_TYPEID::ZERG_HATCHERY)) .front();
 //   initial_hatchery_tag = start_base->tag;
 //   scout_locations = observation->GetGameInfo().enemy_start_locations;
 
@@ -63,7 +63,8 @@ int MAX_SCOUTS_PER_QUAD = 1;
 //   build_order.push(BuildOrderItem(
 //       36, UNIT_TYPEID::ZERG_OVERLORD)); // At 36 cap, build an Overlord
 //   build_order.push(
-//       BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN)); // Build a Roach Warren
+//       BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN)); // Build a Roach
+//       Warren
 //   build_order.push(BuildOrderItem(
 //       0, UNIT_TYPEID::ZERG_EXTRACTOR)); // Build 2 more Extractors
 //   build_order.push(BuildOrderItem(0, UNIT_TYPEID::ZERG_EXTRACTOR));
@@ -108,11 +109,11 @@ int MAX_SCOUTS_PER_QUAD = 1;
 // }
 
 void BasicSc2Bot::InitializeMineralPatches() {
-    const ObservationInterface *observation = Observation();
-    Units mineral_patches = observation->GetUnits(
-        Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
+  const ObservationInterface *observation = Observation();
+  Units mineral_patches = observation->GetUnits(
+      Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
 
-    for (const auto &mineral_patch : mineral_patches) {
+  for (const auto &mineral_patch : mineral_patches) {
     unscouted_mineral_patches.push_back(mineral_patch->pos);
   }
   initialized_mineral_patches = true;
@@ -149,10 +150,11 @@ void BasicSc2Bot::InitializeBuildOrderAndScouts() {
   const ObservationInterface *observation = Observation();
   scout_locations = observation->GetGameInfo().enemy_start_locations;
   for (int i = 0; i < scout_locations.size(); ++i) {
-    std::cout << "Scout location for overlord: " << scout_locations.at(i).x << ", " << scout_locations.at(i).y << std::endl;
+    std::cout << "Scout location for overlord: " << scout_locations.at(i).x
+              << ", " << scout_locations.at(i).y << std::endl;
   }
 
-   // Build drones if not at the given army cap for next item
+  // Build drones if not at the given army cap for next item
   build_order.push(BuildOrderItem(
       13, UNIT_TYPEID::ZERG_OVERLORD)); // At 13 cap, build an Overlord
   build_order.push(BuildOrderItem(
@@ -212,36 +214,45 @@ void BasicSc2Bot::InitializeBuildOrderAndScouts() {
 void BasicSc2Bot::OnStep() {
   const ObservationInterface *observation = Observation();
   // Initialization check
-    if (!initialized) {
-        // Check if our starting hatchery is available
-        Units own_hatcheries = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
-        if (own_hatcheries.empty()) {
-            return;
-        }
-
-        // Check if neutral mineral patches are available
-        Units mineral_patches = observation->GetUnits(Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
-        if (mineral_patches.empty()) {
-            return;
-        }
-
-        // Check if enemy starting locations are available
-        if (observation->GetGameInfo().enemy_start_locations.empty()) {
-            return;
-        }
-
-        // All necessary data is available, start onGameStart initialization in steps
-        if (!initialized_mineral_patches) {
-          InitializeMineralPatches();
-        }
-        if (initialized_mineral_patches && !initialized_hatchery) {
-          InitializeStartingHatchery();
-        }
-        if (initialized_hatchery && !initialized_build_order) {
-          InitializeBuildOrderAndScouts();
-          initialized = true;
-        }
+  if (!initialized) {
+    // Check if our starting hatchery is available
+    Units own_hatcheries = observation->GetUnits(
+        Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
+    if (own_hatcheries.empty()) {
+      return;
     }
+
+    // Check if neutral mineral patches are available
+    Units mineral_patches = observation->GetUnits(
+        Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
+    if (mineral_patches.empty()) {
+      return;
+    }
+
+    // Check if enemy starting locations are available
+    if (observation->GetGameInfo().enemy_start_locations.empty()) {
+      return;
+    }
+
+    // All necessary data is available, start onGameStart initialization in
+    // steps
+    if (!initialized_mineral_patches) {
+      InitializeMineralPatches();
+    }
+    if (initialized_mineral_patches && !initialized_hatchery) {
+      InitializeStartingHatchery();
+    }
+    if (initialized_hatchery && !initialized_build_order) {
+      InitializeBuildOrderAndScouts();
+      initialized = true;
+    }
+  }
+  const Units roach_warrens = observation->GetUnits(
+      Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_ROACHWARREN));
+  if (roach_warren_built && roach_warrens.empty()) {
+    tryBuild(BuildOrderItem(0, UNIT_TYPEID::ZERG_ROACHWARREN));
+    std::cout << "Reattempting to build Roach Warren." << std::endl;
+  }
   int current_supply = observation->GetFoodUsed();
   int supply_cap = observation->GetFoodCap();
   // Change it to build at cap for example build drones till 13
@@ -251,7 +262,8 @@ void BasicSc2Bot::OnStep() {
     auto buildItem = build_order.peek();
     if (current_supply >= buildItem.supply) {
       if (tryBuild(buildItem)) {
-        std::cout << "Building: " << UnitTypeToName(buildItem.unit_type) << std::endl;
+        std::cout << "Building: " << UnitTypeToName(buildItem.unit_type)
+                  << std::endl;
         build_order.pop();
       }
     } else {
@@ -343,6 +355,7 @@ void BasicSc2Bot::OnStep() {
         state.enemyBaseLocations.push_back({enemy_unit->tag, enemy_unit->pos});
         Units overlords = observation->GetUnits(
             Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_OVERLORD));
+        scout_locations.clear();
         for (size_t j = 0; j < overlords.size(); j++) {
           Actions()->UnitCommand(overlords[j], ABILITY_ID::MOVE_MOVE,
                                  state.overlord_rally_point);
@@ -525,9 +538,9 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     break;
   }
   case UNIT_TYPEID::ZERG_OVERLORD: {
-    if (scout_locations.size() > 0) {
-      Actions()->UnitCommand(unit, ABILITY_ID::SMART, scout_locations.front());
-      scout_locations.erase(scout_locations.begin());
+    if (!scout_locations.empty()) {
+      Actions()->UnitCommand(unit, ABILITY_ID::SMART,
+                             scout_locations[rand() % 3]);
     } else if (!inRallyRange(unit->pos, state.overlord_rally_point, 25.0)) {
       Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE,
                              state.overlord_rally_point);
@@ -851,9 +864,9 @@ const Unit *BasicSc2Bot::findAvailableDrone() {
 
     // Skip drones assigned to building
     if (drone_build_map.find(drone->tag) != drone_build_map.end()) {
-            continue;
-        }
-        
+      continue;
+    }
+
     // Prioritize idle drones
     if (drone->orders.empty()) {
       return drone;
@@ -1069,7 +1082,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       if (!spawning_pool_done) {
         return false;
       }
-      Units hatcheries = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
+      Units hatcheries = observation->GetUnits(
+          Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
       for (const auto &hatchery : observation->GetUnits(
                Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_HATCHERY))) {
         if (hatchery->tag == first_queen_hatchery) {
@@ -1079,22 +1093,22 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
             observation->GetMinerals() >= 150) {
           bool queen_exists = false;
           for (const auto &unit : observation->GetUnits(Unit::Alliance::Self)) {
-                if (unit->unit_type == UNIT_TYPEID::ZERG_QUEEN) {
-                    if (DistanceSquared2D(unit->pos, hatchery->pos) < 10.0f) {
-                        queen_exists = true;
-                        break;
-                    }
-                }
+            if (unit->unit_type == UNIT_TYPEID::ZERG_QUEEN) {
+              if (DistanceSquared2D(unit->pos, hatchery->pos) < 10.0f) {
+                queen_exists = true;
+                break;
+              }
             }
+          }
           if (!queen_exists) {
             Actions()->UnitCommand(hatchery, ABILITY_ID::TRAIN_QUEEN);
             first_queen_hatchery = hatchery->tag;
-            std::cout << "Building at Hatchery with Tag: " << hatchery->tag << std::endl;
+            std::cout << "Building at Hatchery with Tag: " << hatchery->tag
+                      << std::endl;
             return true;
           } else {
             continue;
           }
-          
         }
       }
       break;
@@ -1169,8 +1183,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
     case UNIT_TYPEID::ZERG_SPAWNINGPOOL: {
       const Unit *drone = findAvailableDrone();
       if (drone && observation->GetMinerals() >= 200) {
-        Point2D build_position =
-            FindPlacementLocation(ABILITY_ID::BUILD_SPAWNINGPOOL, drone->pos, drone);
+        Point2D build_position = FindPlacementLocation(
+            ABILITY_ID::BUILD_SPAWNINGPOOL, drone->pos, drone);
         if (build_position != Point2D(0.0f, 0.0f)) {
           Actions()->UnitCommand(drone, ABILITY_ID::BUILD_SPAWNINGPOOL,
                                build_position);
@@ -1179,7 +1193,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         } else {
           return false;
         }
-        
       }
       break;
     }
@@ -1195,7 +1208,8 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           drone_build_map[drone->tag] = DroneBuildTask(buildItem, observation->GetGameLoop());
           return true;
         } else {
-          std::cout << "Cant find a build location for roach warren" << std::endl;
+          std::cout << "Cant find a build location for roach warren"
+                    << std::endl;
         }
       }
       break;
