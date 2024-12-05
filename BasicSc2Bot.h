@@ -1,19 +1,27 @@
 #ifndef BASIC_SC2_BOT_H_
 #define BASIC_SC2_BOT_H_
 
+
 #include "AttackBaseQueue.h"
 #include "BuildQueue.h"
 #include "GameManager.h"
+
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_args.h"
 #include "sc2lib/sc2_lib.h"
-#include "sc2utils/sc2_arg_parser.h"
 #include "sc2utils/sc2_manage_process.h"
+#include "sc2utils/sc2_arg_parser.h"
+#include <vector>
+#include <set>
+#include "AttackBaseQueue.h"
+#include "BuildQueue.h"
 #include <sc2api/sc2_agent.h>
 #include <sc2api/sc2_unit_filters.h>
+
 #include <set>
 #include <unordered_set>
 #include <vector>
+
 
 using namespace sc2;
 
@@ -28,6 +36,7 @@ public:
   virtual void OnUnitCreated(const Unit *unit);
 
 private:
+
   const Unit *FindNearestMineralPatch(const Point2D &);
   const Unit *FindNearestMineralPatchForHarvest(const Point2D &);
   const Unit *FindNearestVespenePatch(const Point2D &);
@@ -35,10 +44,12 @@ private:
                                    QueryInterface *query,
                                    float max_radius = 15.0f, float step = 2.0f);
   Point2D FindPlacementLocation(AbilityID ability, const Point2D &near_point, const Unit* unit);
+
   const Unit *findIdleLarva();
   const Unit *findIdleDrone();
-  const Unit *findAvailableDrone();
+  const Unit* findAvailableDrone();
   const Unit *findAvailableLarva();
+
   Point2D findBuildPositionNearMineral(const Point2D &);
   void HandleQueenInjects();
   void AssignDronesToExtractor(const Unit *extractor);
@@ -117,6 +128,7 @@ private:
   bool roach_warren_built = false;
   Tag first_queen_hatchery; // Holds the location of the first hatchery a queen is spawned at so we can avoid both spawning on the same hatchery
   std::map<Tag, DroneBuildTask> drone_build_map; // Holds mapping of drones to structure they're assigned to build to ensure it is built
+
 };
 
 #endif
