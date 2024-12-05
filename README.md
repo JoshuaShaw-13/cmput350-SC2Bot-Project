@@ -19,7 +19,7 @@ Download and install [Visual Studio 2022](https://www.visualstudio.com/downloads
 ```bat
 :: Clone the project
 $ git clone --recursive https://github.com/JoshuaShaw-13/cmput350-SC2Bot-Project
-$ cd BasicSc2Bot
+$ cd cmput350-SC2Bot-Project
 
 :: Create build directory.
 $ mkdir build
@@ -43,7 +43,7 @@ To build, you must use the version of clang that comes with MacOS.
 ```bat
 :: Clone the project
 $ git clone --recursive https://github.com/JoshuaShaw-13/cmput350-SC2Bot-Project
-$ cd BasicSc2Bot
+$ cd cmput350-SC2Bot-Project
 
 :: Create build directory.
 $ mkdir build
