@@ -1,5 +1,7 @@
-# BasicSc2Bot
-Template SC2 Bot for CMPUT 350 at UAlberta.
+# BasicSc2Bot - The Uncaught Exceptions
+
+For our StarCraft 2 bot, we utilized the zerg race to implement a rushing strategy. Our bot's focus is on gathering resources quickly early in the game and then using these resources to continuously build an army of roaches that we launch in waves. The goal is to halt the opponents expansion and resource production and eventually overwhelm an underprepared enemy early, leading to a victory.
+
 
 This bot works with our fork of [Sc2LadderServer](https://github.com/solinas/Sc2LadderServer) which will be used to run the tournament at the end of the term. It should help you
 set up the build process with the correct version of SC2 API so you can focus on creating your bot.
