@@ -19,7 +19,6 @@ using namespace sc2;
 class BasicSc2Bot : public Agent {
 public:
   BasicSc2Bot() : group_size(8), additional_drones(12){};
-  // virtual void OnGameStart();
   virtual void OnStep();
   virtual void OnUnitIdle(const Unit *unit) final;
   virtual void OnBuildingConstructionComplete(const sc2::Unit *unit);
@@ -42,7 +41,6 @@ private:
   void HandleQueenInjects();
   void AssignDronesToExtractor(const Unit *extractor);
   bool tryBuild(struct BuildOrderItem);
-  bool isArmyReady();
   bool inRallyRange(const Point2D &, const Point2D &, float);
   void launchAttack(const Units &attack_group,
                     const GameManager::EnemyBuilding &target_building);

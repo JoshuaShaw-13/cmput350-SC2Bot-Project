@@ -18,7 +18,8 @@ using namespace sc2;
 
 GameManager state;
 int MAX_SCOUTS_PER_QUAD = 1;
-
+// OnGameStart intialization did not work with the ladder server so we switched to initializations within OnStep
+// Sequentially initialized necessary variables used later in the game to ensure they were set
 void BasicSc2Bot::InitializeMineralPatches() {
   const ObservationInterface *observation = Observation();
   Units mineral_patches = observation->GetUnits(
@@ -403,6 +404,7 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
             
             drone_build_map.erase(it);
         }
+    // send idle drones to get vespene gas if we have extractors
     gas_harvesting_drones.erase(unit->tag);
     Units extractors = Observation()->GetUnits(
         Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_EXTRACTOR));
@@ -428,6 +430,7 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     }
     break;
   }
+  // Send overlords to scout at the beginning of the game
   case UNIT_TYPEID::ZERG_OVERLORD: {
     if (!scout_locations.empty()) {
       Actions()->UnitCommand(unit, ABILITY_ID::SMART,
@@ -438,6 +441,7 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     }
     break;
   }
+  // queens should inject larva whenever idle
   case UNIT_TYPEID::ZERG_QUEEN: {
     Units hatcheries =
         Observation()->GetUnits(Unit::Alliance::Self, IsTownHall());
@@ -461,6 +465,8 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     }
     break;
   }
+  // roaches have different things to do if they are idle at certain points in the game
+  // roaches should attack other buildings once they destroy something, scout at the end game, or go to the rally point if they are idle
   case UNIT_TYPEID::ZERG_ROACH: {
     // If roach has been sent to attack
     if (attacking_roaches.find(unit->tag) != attacking_roaches.end()) {
@@ -526,6 +532,7 @@ void BasicSc2Bot::OnBuildingConstructionComplete(const Unit *unit) {
   }
 }
 
+// usually if one of our structures/overlords are destroyed we will add it back to the buildqueue so we can recover it
 void BasicSc2Bot::OnUnitDestroyed(const Unit *unit) {
   if (unit->unit_type == UNIT_TYPEID::ZERG_DRONE &&
       unit->alliance == sc2::Unit::Alliance::Self) {
@@ -611,6 +618,7 @@ void BasicSc2Bot::OnUnitCreated(const Unit *unit) {
     Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, state.rally_point);
     break;
   }
+  // send zerglings to scout a quadrant as soon as they are created if we have less than desired # of scouts
   case sc2::UNIT_TYPEID::ZERG_ZERGLING: {
     std::vector<Point2D> *scout_points;
     std::set<Tag> *scouts_at_quad;
@@ -633,8 +641,8 @@ void BasicSc2Bot::OnUnitCreated(const Unit *unit) {
       added_scout = true;
     }
     if (added_scout) {
-      // get scout info
-      // add index of scout
+      // get possible scout targets for a quadrant
+      // set index of mineral resource to scout
       // add it to scout set
       int index = GetRandomInteger(0, scout_points->size() - 1);
       scouts.insert(std::pair<Tag, Scout>(unit->tag, Scout(unit->tag, index)));
@@ -866,8 +874,10 @@ const Unit *BasicSc2Bot::findIdleDrone() {
   return nullptr;
 }
 
-// Eventually will use manager
-// For now it checks whether its a unit, strucure, or upgrade
+// trys to build various structures
+// Had to be changed significantly due to incompatibility with ladderserver although it was working against AI
+// General approach is to check prerequisites to build, find a location for the build, give a build command then
+// return true/false based on whether it was successful then pop from the build queue only if the build is successful
 bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
   const ObservationInterface *observation = Observation();
 
@@ -1145,21 +1155,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
   return false;
 }
 
-bool BasicSc2Bot::isArmyReady() {
-  int roach_count = 0;
-  int zergling_count = 0;
-  const int optRoach = 3;    // -r x
-  const int optZergling = 0; // -z x
-  for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
-    if (unit->unit_type == UNIT_TYPEID::ZERG_ROACH) {
-      roach_count++;
-    } else if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING) {
-      zergling_count++;
-    }
-  }
-  return roach_count >= optRoach && zergling_count >= optZergling;
-}
-
 void BasicSc2Bot::launchAttack(
     const Units &attack_group,
     const GameManager::EnemyBuilding &target_building) {
@@ -1187,6 +1182,7 @@ Point2D BasicSc2Bot::getMapCenter() const {
 
   return sc2::Point2D(center_x, center_y);
 }
+// send zergling scouts to the next mineral patch to scout
 void BasicSc2Bot::patrolScouts() {
   for (auto &scout_pair : scouts) {
     Scout &scout = scout_pair.second;
