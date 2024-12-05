@@ -61,10 +61,6 @@ void BasicSc2Bot::InitializeStartingHatchery() {
 void BasicSc2Bot::InitializeBuildOrderAndScouts() {
   const ObservationInterface *observation = Observation();
   scout_locations = observation->GetGameInfo().enemy_start_locations;
-  for (int i = 0; i < scout_locations.size(); ++i) {
-    std::cout << "Scout location for overlord: " << scout_locations.at(i).x
-              << ", " << scout_locations.at(i).y << std::endl;
-  }
 
   // Build drones if not at the given army cap for next item
   build_order.push(BuildOrderItem(
@@ -168,8 +164,6 @@ void BasicSc2Bot::OnStep() {
     auto buildItem = build_order.peek();
     if (current_supply >= buildItem.supply) {
       if (tryBuild(buildItem)) {
-        std::cout << "Building: " << UnitTypeToName(buildItem.unit_type)
-                  << std::endl;
         build_order.pop();
       }
     } else {
@@ -356,7 +350,6 @@ void BasicSc2Bot::OnStep() {
     }
 
     if (building_exists) {
-        std::cout << UnitTypeToName(build_item.unit_type) << " is already under construction or built." << std::endl;
         it = drone_build_map.erase(it);
         continue;
     }
@@ -379,8 +372,6 @@ void BasicSc2Bot::OnStep() {
 
     if (!has_correct_order) {
       // Drone is not following the correct order
-      std::cout << "Drone " << drone_tag << " is not building "
-                << UnitTypeToName(build_item.unit_type) << ". Requeueing." << std::endl;
       build_order.push_front(build_item);
       it = drone_build_map.erase(it);
       continue;
@@ -400,7 +391,6 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
         if (it != drone_build_map.end()) {
             BuildOrderItem build_item = it->second.build_item;
             build_order.push_front(build_item);
-            std::cout << "Re-queued building: " << UnitTypeToName(build_item.unit_type) << std::endl;
             
             drone_build_map.erase(it);
         }
@@ -540,7 +530,6 @@ void BasicSc2Bot::OnUnitDestroyed(const Unit *unit) {
       auto it = drone_build_map.find(unit->tag);
       if (it != drone_build_map.end()) {
         BuildOrderItem build_item = it->second.build_item;
-        std::cout << "Drone consumed while building: " << UnitTypeToName(build_item.unit_type) << std::endl;
         // Check if the structure is built or under construction
         bool structure_exists = false;
         Units structures = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(build_item.unit_type));
@@ -553,7 +542,6 @@ void BasicSc2Bot::OnUnitDestroyed(const Unit *unit) {
 
         if (!structure_exists) {
             build_order.push_front(build_item);
-            std::cout << "Re-queued building: " << UnitTypeToName(build_item.unit_type) << std::endl;
         }
         drone_build_map.erase(it);
       }
@@ -1004,8 +992,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           if (!queen_exists) {
             Actions()->UnitCommand(hatchery, ABILITY_ID::TRAIN_QUEEN);
             first_queen_hatchery = hatchery->tag;
-            std::cout << "Building at Hatchery with Tag: " << hatchery->tag
-                      << std::endl;
             return true;
           } else {
             continue;
@@ -1109,8 +1095,7 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           drone_build_map[drone->tag] = DroneBuildTask(buildItem, observation->GetGameLoop());
           return true;
         } else {
-          std::cout << "Cant find a build location for roach warren"
-                    << std::endl;
+
         }
       }
       break;
@@ -1124,8 +1109,6 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
         if (build_position != Point2D(0.0f, 0.0f)) {
           Actions()->UnitCommand(drone, build_ability, build_position);
           drone_build_map[drone->tag] = DroneBuildTask(buildItem, observation->GetGameLoop());
-          std::cout << "Issued build command for: " << UnitTypeToName(buildItem.unit_type)
-                      << " at position (" << build_position.x << ", " << build_position.y << ")" << std::endl;
           return true;
         }
       }
