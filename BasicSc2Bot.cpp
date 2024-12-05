@@ -14,7 +14,6 @@
 #include <utility>
 #define M_PI 3.14
 
-
 using namespace sc2;
 
 GameManager state;
@@ -418,8 +417,8 @@ void BasicSc2Bot::OnStep() {
                              state.enemyBaseLocations.at(0).position);
       // Clear scouting assignments
       roach_scouting_assignments.clear();
-
     }
+  }
 
   // Queen inject on step since they don't revert back to idle after injecting
   // initially.
@@ -532,8 +531,9 @@ void BasicSc2Bot::OnUnitIdle(const Unit *unit) {
     } else {
       const Unit *mineral_target = FindNearestMineralPatchForHarvest(unit->pos);
       if (!mineral_target) {
-
         break;
+      }
+      Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
     }
     break;
   }
@@ -780,21 +780,21 @@ const Point2D BasicSc2Bot::getValidRallyPoint(const Point2D &base_position,
 }
 
 const Unit *BasicSc2Bot::FindNearestMineralPatch(const Point2D &start) {
-    Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
-    float distance = std::numeric_limits<float>::max();
-    const Unit *target = nullptr;
-    for (const auto &u : units) {
-        if (u->unit_type == UNIT_TYPEID::NEUTRAL_MINERALFIELD &&
-            mineral_locations.find(u) == mineral_locations.end()) {
-            float d = DistanceSquared2D(u->pos, start);
-            if (d < distance) {
-                distance = d;
-                target = u;
-            }
-        }
+  Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
+  float distance = std::numeric_limits<float>::max();
+  const Unit *target = nullptr;
+  for (const auto &u : units) {
+    if (u->unit_type == UNIT_TYPEID::NEUTRAL_MINERALFIELD &&
+        mineral_locations.find(u) == mineral_locations.end()) {
+      float d = DistanceSquared2D(u->pos, start);
+      if (d < distance) {
+        distance = d;
+        target = u;
+      }
     }
-    mineral_locations.insert(target);
-    return target;
+  }
+  mineral_locations.insert(target);
+  return target;
 }
 
 const Unit *
@@ -853,9 +853,8 @@ const Unit *BasicSc2Bot::FindNearestVespenePatch(const Point2D &start) {
 }
 
 const Unit *BasicSc2Bot::findAvailableDrone() {
-    Units drones = Observation()->GetUnits(Unit::Alliance::Self,
-                                           IsUnit(UNIT_TYPEID::ZERG_DRONE));
-
+  Units drones = Observation()->GetUnits(Unit::Alliance::Self,
+                                         IsUnit(UNIT_TYPEID::ZERG_DRONE));
 
   for (const auto &drone : drones) {
     // Skip gas harvesting drones
@@ -878,64 +877,63 @@ const Unit *BasicSc2Bot::findAvailableDrone() {
           order.ability_id == ABILITY_ID::HARVEST_RETURN) {
         return drone;
       }
-
     }
+  }
 
-    // As a last resort, find any Drone not building something
-    for (const auto &drone : drones) {
-        if (!drone->orders.empty()) {
-            AbilityID current_ability = drone->orders.front().ability_id;
-            if (current_ability != ABILITY_ID::BUILD_HATCHERY &&
-                current_ability != ABILITY_ID::BUILD_EXTRACTOR &&
-                current_ability != ABILITY_ID::BUILD_SPAWNINGPOOL) {
-                return drone;
-            }
-        }
+  // As a last resort, find any Drone not building something
+  for (const auto &drone : drones) {
+    if (!drone->orders.empty()) {
+      AbilityID current_ability = drone->orders.front().ability_id;
+      if (current_ability != ABILITY_ID::BUILD_HATCHERY &&
+          current_ability != ABILITY_ID::BUILD_EXTRACTOR &&
+          current_ability != ABILITY_ID::BUILD_SPAWNINGPOOL) {
+        return drone;
+      }
     }
+  }
 
-    // No available Drones found
-    return nullptr;
+  // No available Drones found
+  return nullptr;
 }
 const Unit *BasicSc2Bot::findAvailableLarva() {
-    Units larvas = Observation()->GetUnits(Unit::Alliance::Self,
-                                           IsUnit(UNIT_TYPEID::ZERG_LARVA));
+  Units larvas = Observation()->GetUnits(Unit::Alliance::Self,
+                                         IsUnit(UNIT_TYPEID::ZERG_LARVA));
 
-    // Prioritize idle Drones
-    for (const auto &larva : larvas) {
-        if (larva->orders.empty()) {
-            return larva;
-        }
+  // Prioritize idle Drones
+  for (const auto &larva : larvas) {
+    if (larva->orders.empty()) {
+      return larva;
     }
+  }
 
-    // If no idle Drones, find one that's harvesting minerals
-    for (const auto &larva : larvas) {
-        if (!larva->orders.empty()) {
-            AbilityID current_ability = larva->orders.front().ability_id;
-            if (current_ability == ABILITY_ID::HARVEST_GATHER ||
-                current_ability == ABILITY_ID::HARVEST_RETURN) {
-                return larva;
-            }
-        }
+  // If no idle Drones, find one that's harvesting minerals
+  for (const auto &larva : larvas) {
+    if (!larva->orders.empty()) {
+      AbilityID current_ability = larva->orders.front().ability_id;
+      if (current_ability == ABILITY_ID::HARVEST_GATHER ||
+          current_ability == ABILITY_ID::HARVEST_RETURN) {
+        return larva;
+      }
     }
+  }
 
-    // As a last resort, find any Drone not building something
-    for (const auto &larva : larvas) {
-        if (!larva->orders.empty()) {
-            AbilityID current_ability = larva->orders.front().ability_id;
-            if (current_ability != ABILITY_ID::BUILD_HATCHERY &&
-                current_ability != ABILITY_ID::BUILD_EXTRACTOR &&
-                current_ability != ABILITY_ID::BUILD_SPAWNINGPOOL) {
-                return larva;
-            }
-        }
+  // As a last resort, find any Drone not building something
+  for (const auto &larva : larvas) {
+    if (!larva->orders.empty()) {
+      AbilityID current_ability = larva->orders.front().ability_id;
+      if (current_ability != ABILITY_ID::BUILD_HATCHERY &&
+          current_ability != ABILITY_ID::BUILD_EXTRACTOR &&
+          current_ability != ABILITY_ID::BUILD_SPAWNINGPOOL) {
+        return larva;
+      }
     }
+  }
 
-    // No available larvas found
-    return nullptr;
+  // No available larvas found
+  return nullptr;
 }
 Point2D
 BasicSc2Bot::findBuildPositionNearMineral(const Point2D &target_position) {
-
   const float hatchery_size = 5.0f; // Hatchery size in grid squares
   const float build_radius = hatchery_size / 2.0f; // Half the size for radius
   const float search_radius =
@@ -954,30 +952,27 @@ BasicSc2Bot::findBuildPositionNearMineral(const Point2D &target_position) {
       if (Query()->Placement(ABILITY_ID::BUILD_HATCHERY, build_position)) {
         return build_position;
       }
-
     }
+  }
 
-    // No valid position found
-    return Point2D(0.0f, 0.0f);
+  // No valid position found
+  return Point2D(0.0f, 0.0f);
 }
-
 const Unit *BasicSc2Bot::findIdleLarva() {
-    for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
-        if (unit->unit_type == UNIT_TYPEID::ZERG_LARVA &&
-            unit->orders.empty()) {
-            return unit;
-        }
+  for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
+    if (unit->unit_type == UNIT_TYPEID::ZERG_LARVA && unit->orders.empty()) {
+      return unit;
     }
-    return nullptr;
+  }
+  return nullptr;
 }
 const Unit *BasicSc2Bot::findIdleDrone() {
-    for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
-        if (unit->unit_type == UNIT_TYPEID::ZERG_DRONE &&
-            unit->orders.empty()) {
-            return unit;
-        }
+  for (const auto &unit : Observation()->GetUnits(Unit::Alliance::Self)) {
+    if (unit->unit_type == UNIT_TYPEID::ZERG_DRONE && unit->orders.empty()) {
+      return unit;
     }
-    return nullptr;
+  }
+  return nullptr;
 }
 
 // Eventually will use manager
@@ -1074,27 +1069,15 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
       break;
     }
 
-
-        // if its a hatchery we get the nearest mineral location that we havent
-        // visited
-        case UNIT_TYPEID::ZERG_HATCHERY: {
-            const Unit *drone = findAvailableDrone();
-            if (drone && observation->GetMinerals() >= 300) {
-                float rx = GetRandomScalar();
-                float ry = GetRandomScalar();
-                const Unit *nearest_new_mineral_loc =
-                    FindNearestMineralPatch(drone->pos);
-                Point2D build_position =
-                    findBuildPositionNearMineral(nearest_new_mineral_loc->pos);
-                if (build_position.x != 0.0f || build_position.y != 0.0f) {
-                    Actions()->UnitCommand(drone, ABILITY_ID::BUILD_HATCHERY,
-                                           build_position);
-                    return true;
-                }
-            }
-            break;
+    case UNIT_TYPEID::ZERG_QUEEN: {
+      const Units spawning_pools = observation->GetUnits(
+          Unit::Alliance::Self, IsUnit(UNIT_TYPEID::ZERG_SPAWNINGPOOL));
+      bool spawning_pool_done = false;
+      for (const auto &spawning_pool : spawning_pools) {
+        if (spawning_pool->build_progress == 1.0f) {
+          // Spawning Pool is fully constructed
+          spawning_pool_done = true;
         }
-
       }
       if (!spawning_pool_done) {
         return false;
@@ -1126,9 +1109,10 @@ bool BasicSc2Bot::tryBuild(struct BuildOrderItem buildItem) {
           } else {
             continue;
           }
-
         }
-
+      }
+      break;
+    }
 
     // if its a hatchery we get the nearest mineral location that we
     // havent visited
@@ -1280,11 +1264,10 @@ bool BasicSc2Bot::isArmyReady() {
       roach_count++;
     } else if (unit->unit_type == UNIT_TYPEID::ZERG_ZERGLING) {
       zergling_count++;
-
     }
-    return roach_count >= optRoach && zergling_count >= optZergling;
+  }
+  return roach_count >= optRoach && zergling_count >= optZergling;
 }
-
 
 void BasicSc2Bot::launchAttack(
     const Units &attack_group,
@@ -1395,7 +1378,6 @@ bool BasicSc2Bot::inRallyRange(const Point2D &pos, const Point2D &rally,
   } else {
     return false;
   }
-
 }
 
 // Samples from a circle around the center point to check if there is creep every where
