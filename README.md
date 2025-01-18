@@ -5,6 +5,8 @@ For our StarCraft 2 bot, we utilized the zerg race to implement a rushing strate
 
 This bot works with our fork of [Sc2LadderServer](https://github.com/solinas/Sc2LadderServer) which will be used to run the tournament at the end of the term. It should help you
 set up the build process with the correct version of SC2 API so you can focus on creating your bot.
+# Demo
+https://github.com/user-attachments/assets/b5689cdc-0562-4154-b93c-0e088bcdb71c
 
 # Developer Install / Compile Instructions
 ## Requirements
